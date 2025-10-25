@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Login - MancingMo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/login page.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Login Section -->
+<div class="login-container">
+    <div class="login-image">
+        <div class="login-image-content">
+            <h2>Selamat Datang Kembali!</h2>
+            <p>Masuk ke akun Anda dan lanjutkan petualangan memancing Anda bersama peralatan terbaik dari MancingMo</p>
+        </div>
+    </div>
+
+    <div class="login-form-container">
+        <div class="login-header">
+            <h1>Masuk</h1>
+            <p>Masukkan email dan password Anda untuk melanjutkan</p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="padding: 12px; margin-bottom: 20px; border-radius: 8px; background: {% if message.tags == 'error' %}#fee;{% else %}#efe;{% endif %} border: 1px solid {% if message.tags == 'error' %}#fcc;{% else %}#cfc;{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" id="loginForm">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="username">Username atau Email</label>
+                <input type="text" id="username" name="username" placeholder="Masukkan username" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Masukkan password Anda" required>
+            </div>
+
+            <div class="form-options">
+                <div class="remember-me">
+                    <input type="checkbox" id="remember" name="remember">
+                    <label for="remember" style="margin: 0; cursor: pointer;">Ingat Saya</label>
+                </div>
+                <a href="#" class="forgot-password">Lupa Password?</a>
+            </div>
+
+            <button type="submit" class="btn-login">Masuk</button>
+        </form>
+
+        <div class="signup-link">
+            Belum punya akun? <a href="{% url 'register' %}">Daftar Sekarang</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

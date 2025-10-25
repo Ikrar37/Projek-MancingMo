@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Shop - MancingMo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/shop.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Page Hero -->
+<section class="page-hero">
+    <h1 class="page-title">Shop</h1>
+    <div class="breadcrumb">
+        <a href="{% url 'home' %}">Home</a>
+        <span>></span>
+        <span>Shop</span>
+    </div>
+</section>
+
+<!-- Filter Section -->
+<section class="filter-section">
+    <div class="filter-left">
+        <button class="filter-btn" id="filterToggle">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+            </svg>
+            Filter
+        </button>
+        
+        <!-- Category Dropdown -->
+        <div class="category-dropdown" id="categoryDropdown">
+            <form method="get" action="{% url 'shop' %}" id="categoryForm">
+                <div class="category-list">
+                    <button type="submit" name="category" value="" class="category-item {% if not selected_category %}active{% endif %}">
+                        Semua Kategori
+                    </button>
+                    {% for category in categories %}
+                    <button type="submit" name="category" value="{{ category.slug }}" class="category-item {% if selected_category == category.slug %}active{% endif %}">
+                        {{ category.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="filter-right">
+        <div class="results-count">
+            Menampilkan 
+            {% if products %}
+                {{ products.start_index }}–{{ products.end_index }} dari {{ products.paginator.count }}
+            {% else %}
+                0
+            {% endif %}
+            hasil
+        </div>
+        <form method="get" action="{% url 'shop' %}" class="search-form">
+            {% if selected_category %}
+            <input type="hidden" name="category" value="{{ selected_category }}">
+            {% endif %}
+            <div class="search-box">
+                <input type="text" name="search" placeholder="Cari produk..." value="{{ search_query }}">
+                <button type="submit">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- Products Grid -->
+<section class="products-container">
+    <div class="product-grid">
+        {% for product in products %}
+        <div class="product-card" onclick="window.location.href='{% url 'product_detail' product.slug %}';">
+            <div class="product-image">
+                {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+                {% else %}
+                <img src="{% static 'image/no-image.png' %}" alt="No Image">
+                {% endif %}
+            </div>
+            <div class="product-info">
+                <div class="product-name">{{ product.name }}</div>
+                <div class="product-brand">{{ product.category.name }}</div>
+                <div class="product-price">Rp {{ product.price|floatformat:0|intcomma }}</div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="no-products">
+            <svg width="80" height="80" fill="none" stroke="#ccc" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+            </svg>
+            <p>Tidak ada produk yang ditemukan.</p>
+            {% if search_query or selected_category %}
+            <a href="{% url 'shop' %}" class="reset-filter">Reset Filter</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if products.has_other_pages %}
+    <div class="pagination">
+        {% if products.has_previous %}
+        <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="page-link" title="First Page">
+            &laquo;&laquo;
+        </a>
+        <a href="?page={{ products.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="page-link" title="Previous Page">
+            &lsaquo;
+        </a>
+        {% else %}
+        <span class="page-link disabled">&laquo;&laquo;</span>
+        <span class="page-link disabled">&lsaquo;</span>
+        {% endif %}
+        
+        <span class="page-current">
+            Halaman {{ products.number }} dari {{ products.paginator.num_pages }}
+        </span>
+        
+        {% if products.has_next %}
+        <a href="?page={{ products.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="page-link" title="Next Page">
+            &rsaquo;
+        </a>
+        <a href="?page={{ products.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" class="page-link" title="Last Page">
+            &raquo;&raquo;
+        </a>
+        {% else %}
+        <span class="page-link disabled">&rsaquo;</span>
+        <span class="page-link disabled">&raquo;&raquo;</span>
+        {% endif %}
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toggle Filter Dropdown
+    const filterToggle = document.getElementById('filterToggle');
+    const categoryDropdown = document.getElementById('categoryDropdown');
+    
+    if (filterToggle && categoryDropdown) {
+        filterToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            categoryDropdown.classList.toggle('show');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!filterToggle.contains(event.target) && !categoryDropdown.contains(event.target)) {
+                categoryDropdown.classList.remove('show');
+            }
+        });
+    }
+</script>
+{% endblock %}

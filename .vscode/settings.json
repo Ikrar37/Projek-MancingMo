@@ -1,0 +1,35 @@
+{
+    // Python Interpreter
+    "python.defaultInterpreterPath": "${workspaceFolder}/env/bin/python",
+    
+    // Pylance Settings - Matikan error yang tidak perlu
+    "python.analysis.typeCheckingMode": "off",
+    "python.analysis.diagnosticMode": "openFilesOnly",
+    
+    // Django Support
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}",
+        "${workspaceFolder}/products"
+    ],
+    
+    // Auto-complete untuk Django
+    "python.languageServer": "Pylance",
+    
+    // Linting
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": false,
+    
+    // Format on save (optional)
+    "editor.formatOnSave": false,
+    
+    // Files to exclude from watcher
+    "files.watcherExclude": {
+        "**/__pycache__/**": true,
+        "**/env/**": true,
+        "**/migrations/**": true
+    },
+    
+    // Python formatting (optional)
+    "python.formatting.provider": "autopep8"
+}

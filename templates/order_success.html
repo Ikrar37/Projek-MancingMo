@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pesanan Berhasil - MancingMo{% endblock %}
+
+{% block extra_css %}
+<style>
+    .success-section {
+        padding: 80px 20px;
+        text-align: center;
+        background: #f9f9f9;
+        min-height: 60vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .success-container {
+        max-width: 600px;
+        background: white;
+        padding: 50px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .success-icon {
+        width: 80px;
+        height: 80px;
+        background: #4caf50;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 25px;
+    }
+
+    .success-icon svg {
+        width: 50px;
+        height: 50px;
+        color: white;
+    }
+
+    .success-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .success-message {
+        font-size: 16px;
+        color: #666;
+        margin-bottom: 30px;
+        line-height: 1.6;
+    }
+
+    .order-number {
+        background: #f8f9ff;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+
+    .order-number-label {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .order-number-value {
+        font-size: 24px;
+        font-weight: 700;
+        color: #4285f4;
+    }
+
+    .success-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .btn-primary, .btn-secondary {
+        padding: 14px 30px;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: #4285f4;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #3367d6;
+    }
+
+    .btn-secondary {
+        background: white;
+        color: #4285f4;
+        border: 2px solid #4285f4;
+    }
+
+    .btn-secondary:hover {
+        background: #f8f9ff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="success-section">
+    <div class="success-container">
+        <div class="success-icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+            </svg>
+        </div>
+        
+        <h1 class="success-title">Pesanan Berhasil!</h1>
+        <p class="success-message">
+            Terima kasih telah berbelanja di MancingMo. Pesanan Anda sedang diproses dan akan segera dikirim.
+        </p>
+
+        <div class="order-number">
+            <p class="order-number-label">Nomor Pesanan</p>
+            <p class="order-number-value">{{ order.order_number }}</p>
+        </div>
+
+        <div class="success-buttons">
+            <a href="{% url 'profile' %}" class="btn-primary">Lihat Pesanan Saya</a>
+            <a href="{% url 'shop' %}" class="btn-secondary">Lanjut Belanja</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Keranjang - MancingMo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cart.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Page Hero -->
+<section class="page-hero">
+    <h1 class="page-title">Cart</h1>
+    <div class="breadcrumb">
+        <a href="{% url 'home' %}">Home</a>
+        <span>></span>
+        <span>Cart</span>
+    </div>
+</section>
+
+<!-- Cart Container -->
+<section class="cart-container">
+    {% if cart_items %}
+    <!-- Cart Table -->
+    <div class="cart-table">
+        <!-- Table Header -->
+        <div class="table-header">
+            <div></div>
+            <div>Produk</div>
+            <div>Harga</div>
+            <div>Kuantitas</div>
+            <div>Total</div>
+        </div>
+
+        <!-- Cart Items -->
+        {% for item in cart_items %}
+        <div class="cart-item">
+            <!-- Checkbox (optional) -->
+            <div>
+                <input type="checkbox" class="item-checkbox" data-item-id="{{ item.id }}">
+            </div>
+
+            <!-- Product Details -->
+            <div class="item-details">
+                <div class="item-image">
+                    {% if item.product.image %}
+                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                    {% else %}
+                    <img src="{% static 'image/no-image.png' %}" alt="No Image">
+                    {% endif %}
+                </div>
+                <div class="item-info">
+                    <h3>{{ item.product.name }}</h3>
+                    <div class="item-variant">{{ item.product.category.name }}</div>
+                    <div class="item-actions">
+                        <form method="post" action="{% url 'remove_from_cart' item.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="action-btn" onclick="return confirm('Hapus produk ini dari keranjang?')">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                                Hapus
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price -->
+            <div class="item-price">
+                Rp {{ item.product.price|floatformat:0|intcomma }}
+            </div>
+
+            <!-- Quantity -->
+            <div class="item-quantity">
+                <button class="qty-btn" onclick="updateQuantity({{ item.id }}, 'decrease')">-</button>
+                <span class="qty-display" id="qty-{{ item.id }}">{{ item.quantity }}</span>
+                <button class="qty-btn" onclick="updateQuantity({{ item.id }}, 'increase')">+</button>
+            </div>
+
+            <!-- Total -->
+            <div class="item-total" id="subtotal-{{ item.id }}">
+                Rp {{ item.get_subtotal|floatformat:0|intcomma }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Cart Summary -->
+    <div class="cart-summary">
+        <div class="summary-row">
+            <span>Subtotal</span>
+            <span id="cart-subtotal">Rp {{ cart.get_total|floatformat:0|intcomma }}</span>
+        </div>
+        <div class="summary-row total">
+            <span>Total</span>
+            <span id="cart-total">Rp {{ cart.get_total|floatformat:0|intcomma }}</span>
+        </div>
+        <form method="post" action="{% url 'checkout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-checkout">Checkout</button>
+        </form>
+        <a href="{% url 'shop' %}" class="link-continue">Lanjut Belanja</a>
+    </div>
+
+    {% else %}
+    <!-- Empty Cart -->
+    <div class="empty-cart">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+        </svg>
+        <h3>Keranjang Anda Kosong</h3>
+        <p>Belum ada produk yang ditambahkan ke keranjang</p>
+        <a href="{% url 'shop' %}" class="btn-shop">Mulai Belanja</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Function to format number to Rupiah
+function formatRupiah(number) {
+    return 'Rp ' + Math.floor(number).toLocaleString('id-ID');
+}
+
+// Function to update quantity via AJAX
+function updateQuantity(itemId, action) {
+    fetch(`/cart/update/${itemId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: `action=${action}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Update quantity display
+            document.getElementById(`qty-${itemId}`).textContent = data.quantity;
+            
+            // Update subtotal
+            document.getElementById(`subtotal-${itemId}`).textContent = formatRupiah(data.subtotal);
+            
+            // Update cart total
+            document.getElementById('cart-subtotal').textContent = formatRupiah(data.cart_total);
+            document.getElementById('cart-total').textContent = formatRupiah(data.cart_total);
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan. Silakan refresh halaman.');
+    });
+}
+
+// Function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Checkout - MancingMo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/checkout.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="checkout-hero">
+    <div class="container">
+        <a href="{% url 'cart' %}" class="back-button">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h1 class="page-title">Check Out</h1>
+        <div class="breadcrumb">
+            <a href="{% url 'home' %}">Home</a>
+            <span class="separator">›</span>
+            <a href="{% url 'cart' %}">Cart</a>
+            <span class="separator">›</span>
+            <span class="current">Check Out</span>
+        </div>
+    </div>
+</section>
+
+<!-- Checkout Content -->
+<section class="checkout-content">
+    <div class="container">
+        <div class="checkout-grid">
+            <!-- Left Column - Shipping & Payment Info -->
+            <div class="checkout-left">
+                <form method="POST" id="checkoutForm">
+                    {% csrf_token %}
+                    
+                    <!-- Info Pengiriman -->
+                    <div class="checkout-section">
+                        <h2 class="section-title">Info Pengiriman</h2>
+                        
+                        <div class="login-status">
+                            <p class="status-text">Masuk sebagai</p>
+                            <p class="status-value">{{ user.first_name }} {{ user.last_name }}</p>
+                            {% if default_address %}
+                            <button type="button" class="use-default-btn" onclick="useDefaultAddress()">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                Gunakan Alamat Default
+                            </button>
+                            {% endif %}
+                        </div>
+
+                        <div class="address-notice">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                            </svg>
+                            <p>Anda belum menyimpan alamat</p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="full_name">Nama Lengkap</label>
+                            <input type="text" id="full_name" name="full_name" placeholder="Masukkan nama lengkap" 
+                                   value="{% if default_address %}{{ default_address.full_name }}{% else %}{{ user.first_name }} {{ user.last_name }}{% endif %}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="phone">Nomor Telepon</label>
+                            <input type="tel" id="phone" name="phone" placeholder="Contoh: 08123456789" 
+                                   value="{% if default_address %}{{ default_address.phone }}{% endif %}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="address">Alamat Lengkap</label>
+                            <textarea id="address" name="address" rows="3" placeholder="Jl. Contoh No. 123" required>{% if default_address %}{{ default_address.address }}{% endif %}</textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="city">Kota</label>
+                                <input type="text" id="city" name="city" placeholder="Contoh: Makassar" 
+                                       value="{% if default_address %}{{ default_address.city }}{% endif %}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="postal_code">Kode Pos (Opsional)</label>
+                                <input type="text" id="postal_code" name="postal_code" placeholder="90123" 
+                                       value="{% if default_address %}{{ default_address.postal_code }}{% endif %}">
+                            </div>
+                        </div>
+
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="save_address" name="save_address" value="1">
+                            <label for="save_address">Simpan alamat sebagai alamat default</label>
+                        </div>
+
+                        <button type="button" class="btn-continue" onclick="showPayment()">Lanjutkan</button>
+                    </div>
+
+                    <!-- Pembayaran Section (Hidden by default) -->
+                    <div class="checkout-section" id="paymentSection" style="display: none;">
+                        <h2 class="section-title">Pembayaran</h2>
+                        
+                        <div class="payment-summary">
+                            <div class="summary-row">
+                                <span>Subtotal</span>
+                                <span class="amount">Rp {{ cart.get_total|floatformat:0 }}</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Estimasi Pengiriman : 15 Sep - 20 Sep 2025</span>
+                                <span class="amount">Rp {{ shipping_cost|floatformat:0 }}</span>
+                            </div>
+                            <div class="summary-row total-row">
+                                <span>Total</span>
+                                <span class="amount">Rp {{ total|floatformat:0 }}</span>
+                            </div>
+                        </div>
+
+                        <h3 class="payment-method-title">Pilih Metode Pembayaran</h3>
+
+                        <div class="payment-options">
+                            <label class="payment-option">
+                                <input type="radio" name="payment_method" value="bank_transfer" required>
+                                <div class="payment-card">
+                                    <span class="payment-name">Transfer Bank</span>
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </div>
+                            </label>
+
+                            <label class="payment-option">
+                                <input type="radio" name="payment_method" value="qris" required>
+                                <div class="payment-card">
+                                    <span class="payment-name">QRIS</span>
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </div>
+                            </label>
+                        </div>
+
+                        <button type="submit" class="btn-checkout">Lanjutkan</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Right Column - Order Summary -->
+            <div class="checkout-right">
+                <div class="order-summary">
+                    <h2 class="summary-title">Ringkasan Pesanan</h2>
+                    <p class="summary-subtitle">Dijual dan dikirim oleh MancingMo</p>
+
+                    <div class="order-items">
+                        {% for item in cart_items %}
+                        <div class="order-item">
+                            <div class="item-image">
+                                {% if item.product.get_main_image %}
+                                <img src="{{ item.product.get_main_image }}" alt="{{ item.product.name }}">
+                                {% else %}
+                                <div class="no-image">No Image</div>
+                                {% endif %}
+                            </div>
+                            <div class="item-details">
+                                <h3 class="item-name">{{ item.product.name }}</h3>
+                                <p class="item-spec">{{ item.product.description|truncatewords:5 }}</p>
+                                <div class="item-footer">
+                                    <span class="item-quantity">x {{ item.quantity }}</span>
+                                    <span class="item-price">Rp {{ item.get_subtotal|floatformat:0 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="summary-totals">
+                        <div class="total-row">
+                            <span>Subtotal</span>
+                            <span>Rp {{ cart.get_total|floatformat:0 }}</span>
+                        </div>
+                        <div class="total-row">
+                            <span>Estimasi Pengiriman</span>
+                            <span>Untuk dihitung</span>
+                        </div>
+                        <div class="total-row final">
+                            <span>Total</span>
+                            <span>Rp {{ cart.get_total|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+// Function to use default address
+function useDefaultAddress() {
+    // Data already filled from template
+    document.querySelector('.address-notice').style.display = 'none';
+}
+
+// Function to show payment section
+function showPayment() {
+    // Validate shipping info first
+    const form = document.getElementById('checkoutForm');
+    const requiredFields = form.querySelectorAll('.checkout-section:first-child input[required], .checkout-section:first-child textarea[required]');
+    
+    let isValid = true;
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            isValid = false;
+            field.style.borderColor = '#e74c3c';
+        } else {
+            field.style.borderColor = '#ddd';
+        }
+    });
+
+    if (isValid) {
+        document.getElementById('paymentSection').style.display = 'block';
+        document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth' });
+    } else {
+        alert('Mohon lengkapi semua data pengiriman!');
+    }
+}
+
+// Reset border color on input
+document.querySelectorAll('input, textarea').forEach(field => {
+    field.addEventListener('input', function() {
+        this.style.borderColor = '#ddd';
+    });
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}About - MancingMo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/about.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Banner -->
+<section class="page-hero">
+    <h1>About Us</h1>
+    <div class="breadcrumb">
+        <a href="{% url 'home' %}">Home</a>
+        <span>></span>
+        <span>About</span>
+    </div>
+</section>
+
+<!-- About Section -->
+<section class="about-section">
+    <!-- Intro -->
+    <div class="about-intro">
+        <div class="about-image">
+            <img src="{% static 'image/inspirasi1.png' %}" alt="MancingMo Store">
+        </div>
+        <div class="about-text">
+            <h2>Tentang MancingMo</h2>
+            <p>MancingMo adalah toko perlengkapan pancing terpercaya yang melayani para pecinta mancing di seluruh Indonesia. Kami berkomitmen untuk menyediakan produk berkualitas tinggi dengan harga yang kompetitif.</p>
+            <p>Kami memahami kebutuhan setiap pemancing, baik pemula maupun profesional. Setiap produk yang kami tawarkan dipilih dengan cermat untuk memastikan kualitas dan performa terbaik.</p>
+            <p>Kepuasan pelanggan adalah prioritas utama kami. Tim kami siap membantu Anda menemukan perlengkapan pancing yang sesuai dengan kebutuhan serta memberikan konsultasi secara gratis.</p>
+        </div>
+    </div>
+
+    <!-- Values -->
+    <div class="values-section">
+        <div class="values-header">
+            <h2>Nilai-Nilai Kami</h2>
+            <p>Prinsip yang kami pegang dalam melayani setiap pelanggan</p>
+        </div>
+        <div class="values-grid">
+            <div class="value-card">
+                <div class="value-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3>Kualitas Terjamin</h3>
+                <p>Kami hanya menjual produk original dari merek terpercaya dengan garansi resmi. Setiap produk telah melalui quality control yang ketat.</p>
+            </div>
+            <div class="value-card">
+                <div class="value-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h3>Harga Kompetitif</h3>
+                <p>Kami menawarkan harga terbaik di pasaran tanpa mengurangi kualitas produk. Dapatkan promo menarik setiap bulannya.</p>
+            </div>
+            <div class="value-card">
+                <div class="value-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/>
+                    </svg>
+                </div>
+                <h3>Pelayanan Terbaik</h3>
+                <p>Tim customer service kami siap membantu Anda 24/7. Konsultasi gratis untuk memilih perlengkapan pancing yang tepat.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team -->
+    <div class="team-section">
+        <div class="team-header">
+            <h2>Tim Kami</h2>
+            <p>Kenalan dengan orang-orang di balik MancingMo</p>
+        </div>
+        <div class="team-grid">
+            <div class="team-member">
+                <div class="member-photo">
+                    <img src="{% static 'image/Rara.jpeg' %}" alt="Arfika">
+                </div>
+                <div class="member-name">Arfika</div>
+                <div class="member-role">Designer UI/UX</div>
+                <p class="member-bio">UI/UX Designer merancang tampilan dan pengalaman pengguna agar aplikasi atau website terlihat menarik, mudah digunakan, dan nyaman saat diakses.</p>
+            </div>
+            <div class="team-member">
+                <div class="member-photo">
+                    <img src="{% static 'image/Ikrar.jpeg' %}" alt="Muhammad Ikrar">
+                </div>
+                <div class="member-name">Muhammad Ikrar</div>
+                <div class="member-role">Developer 1</div>
+                <p class="member-bio">Bertanggung jawab penuh dalam pengembangan, mulai dari tampilan, fitur, hingga memastikan sistem berjalan baik.</p>
+            </div>
+            <div class="team-member">
+                <div class="member-photo">
+                    <img src="{% static 'image/Dewi.jpeg' %}" alt="Dewi Astuti">
+                </div>
+                <div class="member-name">Dewi Astuti</div>
+                <div class="member-role">Developer 2</div>
+                <p class="member-bio">Membantu Developer 1 dalam proses pengembangan, seperti menyiapkan data, menguji fitur, memperbaiki bug, dan mendukung pekerjaan agar hasilnya lebih cepat dan optimal.</p>
+            </div>
+            <div class="team-member">
+                <div class="member-photo">
+                    <img src="{% static 'image/team/ramdan.jpg' %}" alt="Muhammad Ramdan Alqadri">
+                </div>
+                <div class="member-name">Muhammad Ramdan Alqadri</div>
+                <div class="member-role">Product Manager</div>
+                <p class="member-bio">Memilih dan mengelola produk-produk terbaik untuk memastikan kualitas setiap item yang dijual.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+        <h2>Siap Memulai Petualangan Mancing Anda?</h2>
+        <p>Jelajahi koleksi lengkap perlengkapan pancing kami dan temukan yang terbaik untuk Anda</p>
+        <a href="{% url 'shop' %}" class="btn-cta">Belanja Sekarang</a>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}  <!-- ✅ TAMBAHKAN INI -->
+
+{% block title %}Home - MancingMo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/index.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-badge">NEW ARRIVAL</div>
+        <h1 class="hero-title">Temukan Koleksi Alat Pancing Terbaru Kami!</h1>
+        <p class="hero-description">
+            Jelajahi Berbagai Macam Alat Pancing yang Lebih Seru Dengan Perlengkapan Berkualitas Tinggi Dan Desain Modern, Jadikan Setiap Tarikan Lebih Menantang!
+        </p>
+        <button class="btn-primary" onclick="window.location.href='{% url 'shop' %}'">Beli Sekarang</button>
+    </div>
+</section>
+
+<!-- Products Section -->
+<section class="products">
+    <h2 class="section-title">Our Products</h2>
+    <div class="product-grid">
+        {% for product in products %}
+        <div class="product-card" onclick="window.location.href='{% url 'product_detail' product.slug %}';">
+            <div class="product-image">
+                <img src="{{ product.image.url }}" alt="{{ product.name }}">
+            </div>
+            <div class="product-info">
+                <div class="product-name">{{ product.name }}</div>
+                <div class="product-brand">{{ product.category.name }}</div>
+                <div class="product-price">Rp {{ product.price|floatformat:0|intcomma }}</div>  <!-- ✅ GANTI INI -->
+            </div>
+        </div>
+        {% empty %}
+        <p>Belum ada produk tersedia.</p>
+        {% endfor %}
+    </div>
+    <button class="show-more-btn" onclick="window.location.href='{% url 'shop' %}'">Show More</button>
+</section>
+
+<!-- Inspiration Section -->
+<section class="inspiration">
+    <div class="inspiration-content">
+        <h2 class="inspiration-title">Inspirasi Alat Pancing Terbaik</h2>
+        <p class="inspiration-description">
+            Temukan berbagai perlengkapan pancing dengan desain modern dan performa tinggi yang akan membuat pengalaman memancing anda semakin menyenangkan.
+        </p>
+        <button class="btn-secondary" onclick="window.location.href='{% url 'shop' %}'">Explore More</button>
+    </div>
+    <div class="inspiration-image inspiration-image-large" style="background-image: url('{% static 'image/inspirasi1.png' %}');"></div>
+    <div class="inspiration-image inspiration-image-small" style="background-image: url('{% static 'image/inspirasi2.png' %}');"></div>
+</section>
+{% endblock %}

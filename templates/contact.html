@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Kontak - MancingMo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/contact.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Banner -->
+<section class="page-hero">
+    <h1>Kontak</h1>
+    <div class="breadcrumb">
+        <a href="{% url 'home' %}">Beranda</a>
+        <span>></span>
+        <span>Kontak</span>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section class="contact-section">
+    <div class="contact-header">
+        <h2>Hubungi Kami</h2>
+        <p>Untuk informasi lebih lanjut tentang produk dan layanan kami, silakan kirim pesan atau email. Tim kami siap membantu Anda kapan saja!</p>
+    </div>
+
+    <div class="contact-container">
+        <!-- Contact Info -->
+        <div class="contact-info">
+            <div class="info-item">
+                <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <div class="info-content">
+                    <h3>Alamat</h3>
+                    <p>Jl. Sanrangan, Sudiang Raya, Kota Makassar, Sulawesi Selatan</p>
+                </div>
+            </div>
+
+            <div class="info-item">
+                <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                </svg>
+                <div class="info-content">
+                    <h3>Telepon</h3>
+                    <p>WhatsApp: +62 81253621738<br>No. Telp: +62 81253621738</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Form -->
+        <form class="contact-form" method="POST" id="contactForm">
+            {% csrf_token %}
+            
+            <!-- Display Messages -->
+            {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label for="name">Nama Anda</label>
+                <input type="text" id="name" name="name" placeholder="Masukkan nama Anda" required value="{{ form_data.name|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Alamat Email</label>
+                <input type="email" id="email" name="email" placeholder="contoh@domain.com" required value="{{ form_data.email|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="subject">Subjek <span class="optional">(Opsional)</span></label>
+                <input type="text" id="subject" name="subject" placeholder="Tulis subjek di sini" value="{{ form_data.subject|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="message">Pesan</label>
+                <textarea id="message" name="message" placeholder="Hai! Saya ingin menanyakan tentang..." required>{{ form_data.message|default:'' }}</textarea>
+            </div>
+
+            <button type="submit" class="submit-btn">Kirim</button>
+        </form>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-hide success messages after 5 seconds
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            alert.style.opacity = '0';
+            setTimeout(() => alert.remove(), 300);
+        }, 5000);
+    });
+});
+</script>
+{% endblock %}

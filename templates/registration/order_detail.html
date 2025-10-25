@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Order #{{ order.id }} - MancingMo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/order_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="order-detail-container">
+    <div class="page-header">
+        <div class="header-left">
+            <a href="{% url 'order_history' %}" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Orders
+            </a>
+            <h1>Order #{{ order.id }}</h1>
+            <p class="order-date">Placed on {{ order.created_at|date:"F d, Y at H:i" }}</p>
+        </div>
+        <div class="header-right">
+            <span class="status-badge status-{{ order.status|lower }}">
+                {{ order.get_status_display }}
+            </span>
+        </div>
+    </div>
+
+    <div class="order-content">
+        <div class="main-content">
+            <!-- Order Items -->
+            <div class="section order-items-section">
+                <h2>Order Items</h2>
+                <div class="items-list">
+                    {% for item in order.items.all %}
+                    <div class="order-item">
+                        <div class="item-image">
+                            {% if item.product.image %}
+                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                            {% else %}
+                                <div class="no-image">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="item-details">
+                            <h3>{{ item.product.name }}</h3>
+                            <p class="item-price">Rp {{ item.price|floatformat:0 }}</p>
+                            <p class="item-quantity">Quantity: {{ item.quantity }}</p>
+                        </div>
+                        <div class="item-total">
+                            <p class="subtotal-label">Subtotal</p>
+                            <p class="subtotal-amount">Rp {{ item.subtotal|floatformat:0 }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Shipping Information -->
+            <div class="section shipping-section">
+                <h2>Shipping Information</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Name:</label>
+                        <p>{{ order.shipping_name }}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Email:</label>
+                        <p>{{ order.shipping_email }}</p>
+                    </div>
+                    <div class="info-item">
+                        <label>Phone:</label>
+                        <p>{{ order.shipping_phone }}</p>
+                    </div>
+                    <div class="info-item full-width">
+                        <label>Address:</label>
+                        <p>{{ order.shipping_address }}</p>
+                        <p>{{ order.shipping_city }}, {{ order.shipping_postal_code }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Tracking -->
+            {% if order.tracking_number %}
+            <div class="section tracking-section">
+                <h2>Tracking Information</h2>
+                <div class="tracking-info">
+                    <p><strong>Tracking Number:</strong> {{ order.tracking_number }}</p>
+                    <a href="#" class="btn btn-outline">Track Package</a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Order Notes -->
+            {% if order.notes %}
+            <div class="section notes-section">
+                <h2>Order Notes</h2>
+                <p>{{ order.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="sidebar">
+            <!-- Order Summary -->
+            <div class="summary-card">
+                <h3>Order Summary</h3>
+                <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span>Rp {{ order.total_amount|floatformat:0 }}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Shipping:</span>
+                    <span>Rp {{ order.shipping_cost|floatformat:0 }}</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total:</span>
+                    <span>Rp {{ order.total_amount|floatformat:0 }}</span>
+                </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="payment-card">
+                <h3>Payment Information</h3>
+                <div class="payment-info">
+                    <p><strong>Method:</strong> {{ order.payment_method|default:"N/A" }}</p>
+                    <p><strong>Status:</strong> 
+                        <span class="payment-status status-{{ order.payment_status|lower }}">
+                            {{ order.payment_status|title }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions-card">
+                {% if order.status == 'pending' %}
+                    <button class="btn btn-danger btn-block" onclick="cancelOrder({{ order.id }})">
+                        Cancel Order
+                    </button>
+                {% endif %}
+                {% if order.status == 'delivered' %}
+                    <button class="btn btn-primary btn-block" onclick="reorder({{ order.id }})">
+                        Order Again
+                    </button>
+                {% endif %}
+                <a href="{% url 'contact' %}" class="btn btn-outline btn-block">
+                    Contact Support
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function cancelOrder(orderId) {
+    if (confirm('Are you sure you want to cancel this order?')) {
+        fetch(`/orders/${orderId}/cancel/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Failed to cancel order: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+
+function reorder(orderId) {
+    if (confirm('Add all items from this order to your cart?')) {
+        fetch(`/orders/${orderId}/reorder/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/checkout/';
+            } else {
+                alert('Failed to reorder: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+</script>
+{% endblock %}

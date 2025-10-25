@@ -1,0 +1,471 @@
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.models import User, Group
+from django.utils.html import format_html
+from .models import (
+    Category, Product, ProductImage, UserProfile, ShippingAddress,
+    Cart, CartItem, Order, OrderItem, ContactMessage, AdminUser, Customer
+)
+
+# ==================== UNREGISTER DEFAULT USER ====================
+# Unregister User dan Group default agar bisa custom
+admin.site.unregister(User)
+admin.site.unregister(Group)
+
+
+# ==================== ADMIN USER MANAGEMENT ====================
+
+@admin.register(AdminUser)
+class AdminUserAdmin(BaseUserAdmin):
+    list_display = ['username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'date_joined']
+    list_filter = ['is_staff', 'is_superuser', 'is_active', 'date_joined']
+    search_fields = ['username', 'email', 'first_name', 'last_name']
+    ordering = ['-date_joined']
+    
+    fieldsets = (
+        ('Informasi Login', {
+            'fields': ('username', 'password')
+        }),
+        ('Informasi Personal', {
+            'fields': ('first_name', 'last_name', 'email')
+        }),
+        ('Permissions', {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
+            'classes': ('collapse',)
+        }),
+        ('Tanggal Penting', {
+            'fields': ('last_login', 'date_joined'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    add_fieldsets = (
+        ('Buat Admin Baru', {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'password1', 'password2', 'is_staff', 'is_superuser'),
+        }),
+    )
+    
+    readonly_fields = ['last_login', 'date_joined']
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Hanya tampilkan user yang is_staff=True
+        return qs.filter(is_staff=True)
+
+
+# ==================== CUSTOMER USER MANAGEMENT ====================
+
+@admin.register(Customer)
+class CustomerAdmin(BaseUserAdmin):
+    list_display = ['username', 'email', 'full_name', 'phone_display', 'city_display', 'total_orders', 'date_joined']
+    list_filter = ['is_active', 'date_joined', 'profile__city', 'profile__gender']
+    search_fields = ['username', 'email', 'first_name', 'last_name', 'profile__phone', 'profile__city']
+    ordering = ['-date_joined']
+    
+    fieldsets = (
+        ('Informasi Login', {
+            'fields': ('username', 'password')
+        }),
+        ('Informasi Personal', {
+            'fields': ('first_name', 'last_name', 'email')
+        }),
+        ('Status Akun', {
+            'fields': ('is_active',)
+        }),
+        ('Tanggal Penting', {
+            'fields': ('last_login', 'date_joined'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    add_fieldsets = (
+        ('Buat Customer Baru', {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'password1', 'password2', 'first_name', 'last_name'),
+        }),
+    )
+    
+    readonly_fields = ['last_login', 'date_joined']
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        # Hanya tampilkan user yang is_staff=False (customer)
+        return qs.filter(is_staff=False)
+    
+    def full_name(self, obj):
+        if obj.first_name and obj.last_name:
+            return f"{obj.first_name} {obj.last_name}"
+        return obj.username
+    full_name.short_description = 'Nama Lengkap'
+    
+    def phone_display(self, obj):
+        if hasattr(obj, 'profile') and obj.profile.phone:
+            return obj.profile.phone
+        return '-'
+    phone_display.short_description = 'Telepon'
+    
+    def city_display(self, obj):
+        if hasattr(obj, 'profile') and obj.profile.city:
+            return obj.profile.city
+        return '-'
+    city_display.short_description = 'Kota'
+    
+    def total_orders(self, obj):
+        count = obj.orders.count()
+        if count > 0:
+            return format_html('<span style="color: green; font-weight: bold;">{} Pesanan</span>', count)
+        return format_html('<span style="color: gray;">Belum ada pesanan</span>')
+    total_orders.short_description = 'Total Pesanan'
+
+
+# ==================== GROUP ADMIN ====================
+
+@admin.register(Group)
+class GroupAdmin(admin.ModelAdmin):
+    list_display = ['name', 'total_users', 'permissions_count']
+    search_fields = ['name']
+    filter_horizontal = ['permissions']
+    
+    def total_users(self, obj):
+        count = obj.user_set.count()
+        return f"{count} user(s)"
+    total_users.short_description = 'Total Users'
+    
+    def permissions_count(self, obj):
+        count = obj.permissions.count()
+        return f"{count} permission(s)"
+    permissions_count.short_description = 'Permissions'
+
+
+# ==================== CATEGORY ADMIN ====================
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug', 'total_products', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['name', 'description']
+    prepopulated_fields = {'slug': ('name',)}
+    ordering = ['name']
+    
+    fieldsets = (
+        ('Informasi Dasar', {
+            'fields': ('name', 'slug', 'description')
+        }),
+        ('Informasi Waktu', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at']
+    
+    def total_products(self, obj):
+        count = obj.products.count()
+        return f"{count} produk"
+    total_products.short_description = 'Total Produk'
+
+
+# ==================== PRODUCT ADMIN ====================
+
+class ProductImageInline(admin.TabularInline):
+    model = ProductImage
+    extra = 1
+    fields = ['image', 'alt_text', 'order']
+    verbose_name = "Gambar Tambahan"
+    verbose_name_plural = "Gambar Tambahan"
+
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ['name', 'category', 'price', 'stock', 'is_active', 'featured', 'created_at']
+    list_filter = ['is_active', 'featured', 'category', 'created_at']
+    search_fields = ['name', 'description']
+    prepopulated_fields = {'slug': ('name',)}
+    list_editable = ['price', 'stock', 'is_active', 'featured']
+    ordering = ['-created_at']
+    inlines = [ProductImageInline]
+    
+    fieldsets = (
+        ('Informasi Produk', {
+            'fields': ('name', 'slug', 'description', 'category')
+        }),
+        ('Harga & Stok', {
+            'fields': ('price', 'stock')
+        }),
+        ('Media', {
+            'fields': ('image',),
+            'description': 'Upload gambar utama produk. Gambar tambahan bisa ditambahkan di bawah.'
+        }),
+        ('Status', {
+            'fields': ('is_active', 'featured')
+        }),
+        ('Informasi Waktu', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at', 'updated_at']
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('category')
+
+
+# ==================== USER PROFILE ADMIN ====================
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'phone', 'whatsapp', 'city', 'province', 'gender', 'created_at']
+    list_filter = ['gender', 'city', 'province', 'created_at']
+    search_fields = ['user__username', 'user__email', 'user__first_name', 'user__last_name', 'phone', 'whatsapp', 'city']
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('User', {
+            'fields': ('user',)
+        }),
+        ('Foto Profile', {
+            'fields': ('photo',)
+        }),
+        ('Informasi Kontak', {
+            'fields': ('phone', 'whatsapp')
+        }),
+        ('Informasi Pribadi', {
+            'fields': ('birth_date', 'gender', 'bio')
+        }),
+        ('Alamat', {
+            'fields': ('address', 'city', 'province', 'postal_code')
+        }),
+        ('Informasi Waktu', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at', 'updated_at']
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user')
+
+
+# ==================== SHIPPING ADDRESS ADMIN ====================
+
+@admin.register(ShippingAddress)
+class ShippingAddressAdmin(admin.ModelAdmin):
+    list_display = ['user', 'full_name', 'phone', 'city', 'is_default', 'created_at']
+    list_filter = ['is_default', 'city', 'created_at']
+    search_fields = ['user__username', 'full_name', 'phone', 'address', 'city']
+    list_editable = ['is_default']
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('User', {
+            'fields': ('user',)
+        }),
+        ('Informasi Penerima', {
+            'fields': ('full_name', 'phone')
+        }),
+        ('Alamat Pengiriman', {
+            'fields': ('address', 'city', 'postal_code')
+        }),
+        ('Status', {
+            'fields': ('is_default',)
+        }),
+        ('Informasi Waktu', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at']
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user')
+
+
+# ==================== CART ADMIN ====================
+
+class CartItemInline(admin.TabularInline):
+    model = CartItem
+    extra = 0
+    fields = ['product', 'quantity', 'subtotal_display']
+    readonly_fields = ['subtotal_display']
+    verbose_name = "Item di Keranjang"
+    verbose_name_plural = "Item di Keranjang"
+    
+    def subtotal_display(self, obj):
+        return f"Rp {obj.get_subtotal():,.0f}"
+    subtotal_display.short_description = 'Subtotal'
+
+
+@admin.register(Cart)
+class CartAdmin(admin.ModelAdmin):
+    list_display = ['user', 'total_items_display', 'total_price_display', 'created_at', 'updated_at']
+    search_fields = ['user__username', 'user__email']
+    ordering = ['-updated_at']
+    inlines = [CartItemInline]
+    
+    fieldsets = (
+        ('User', {
+            'fields': ('user',)
+        }),
+        ('Informasi Waktu', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at', 'updated_at']
+    
+    def total_items_display(self, obj):
+        return f"{obj.total_items} item"
+    total_items_display.short_description = 'Total Items'
+    
+    def total_price_display(self, obj):
+        return f"Rp {obj.total_price:,.0f}"
+    total_price_display.short_description = 'Total Price'
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user').prefetch_related('items')
+
+
+# ==================== ORDER ADMIN ====================
+
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 0
+    fields = ['product', 'product_name', 'product_price', 'quantity', 'subtotal']
+    readonly_fields = ['subtotal']
+    verbose_name = "Item Pesanan"
+    verbose_name_plural = "Item Pesanan"
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ['order_number', 'user', 'shipping_name', 'status', 'payment_method', 'total_display', 'created_at']
+    list_filter = ['status', 'payment_method', 'created_at', 'updated_at']
+    search_fields = ['order_number', 'user__username', 'user__email', 'shipping_name', 'shipping_phone']
+    list_editable = ['status']
+    ordering = ['-created_at']
+    inlines = [OrderItemInline]
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Order Information', {
+            'fields': ('order_number', 'user', 'status')
+        }),
+        ('Shipping Information', {
+            'fields': ('shipping_name', 'shipping_phone', 'shipping_address', 'shipping_city', 'shipping_postal_code')
+        }),
+        ('Payment Information', {
+            'fields': ('payment_method', 'payment_proof', 'paid_at')
+        }),
+        ('Pricing', {
+            'fields': ('subtotal', 'shipping_cost', 'total')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['order_number', 'created_at', 'updated_at']
+    
+    def total_display(self, obj):
+        return f"Rp {obj.total:,.0f}"
+    total_display.short_description = 'Total'
+    total_display.admin_order_field = 'total'
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user').prefetch_related('items')
+    
+    actions = ['mark_as_paid', 'mark_as_processing', 'mark_as_shipped', 'mark_as_delivered', 'mark_as_cancelled']
+    
+    def mark_as_paid(self, request, queryset):
+        from django.utils import timezone
+        updated = queryset.update(status='paid', paid_at=timezone.now())
+        self.message_user(request, f'{updated} order(s) berhasil ditandai sebagai "Sudah Dibayar".')
+    mark_as_paid.short_description = 'Tandai sebagai Sudah Dibayar'
+    
+    def mark_as_processing(self, request, queryset):
+        updated = queryset.update(status='processing')
+        self.message_user(request, f'{updated} order(s) berhasil ditandai sebagai "Sedang Diproses".')
+    mark_as_processing.short_description = 'Tandai sebagai Sedang Diproses'
+    
+    def mark_as_shipped(self, request, queryset):
+        updated = queryset.update(status='shipped')
+        self.message_user(request, f'{updated} order(s) berhasil ditandai sebagai "Dikirim".')
+    mark_as_shipped.short_description = 'Tandai sebagai Dikirim'
+    
+    def mark_as_delivered(self, request, queryset):
+        updated = queryset.update(status='delivered')
+        self.message_user(request, f'{updated} order(s) berhasil ditandai sebagai "Terkirim".')
+    mark_as_delivered.short_description = 'Tandai sebagai Terkirim'
+    
+    def mark_as_cancelled(self, request, queryset):
+        updated = queryset.update(status='cancelled')
+        self.message_user(request, f'{updated} order(s) berhasil ditandai sebagai "Dibatalkan".')
+    mark_as_cancelled.short_description = 'Tandai sebagai Dibatalkan'
+
+
+# ==================== CONTACT MESSAGE ADMIN ====================
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ['name', 'email', 'subject_display', 'is_read', 'created_at']
+    list_filter = ['is_read', 'created_at']
+    search_fields = ['name', 'email', 'subject', 'message']
+    list_editable = ['is_read']
+    ordering = ['-created_at']
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Informasi Pengirim', {
+            'fields': ('name', 'email', 'user')
+        }),
+        ('Pesan', {
+            'fields': ('subject', 'message')
+        }),
+        ('Status', {
+            'fields': ('is_read',)
+        }),
+        ('Informasi Waktu', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at']
+    
+    def subject_display(self, obj):
+        return obj.subject if obj.subject else '(Tanpa Subjek)'
+    subject_display.short_description = 'Subjek'
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user')
+    
+    actions = ['mark_as_read', 'mark_as_unread']
+    
+    def mark_as_read(self, request, queryset):
+        updated = queryset.update(is_read=True)
+        self.message_user(request, f'{updated} pesan berhasil ditandai sebagai sudah dibaca.')
+    mark_as_read.short_description = 'Tandai sebagai Sudah Dibaca'
+    
+    def mark_as_unread(self, request, queryset):
+        updated = queryset.update(is_read=False)
+        self.message_user(request, f'{updated} pesan berhasil ditandai sebagai belum dibaca.')
+    mark_as_unread.short_description = 'Tandai sebagai Belum Dibaca'
+
+
+# ==================== ADMIN SITE CUSTOMIZATION ====================
+
+# Customize admin site header, title, and index title
+admin.site.site_header = 'MancingMo Admin'
+admin.site.site_title = 'MancingMo Admin Portal'
+admin.site.index_title = 'Selamat Datang di MancingMo Admin'
+
+
+# ==================== JANGAN REGISTER MODEL INI (SUDAH ADA INLINE) ====================
+# ProductImage - sudah ada di ProductAdmin sebagai inline
+# CartItem - sudah ada di CartAdmin sebagai inline  
+# OrderItem - sudah ada di OrderAdmin sebagai inline

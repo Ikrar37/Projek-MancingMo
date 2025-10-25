@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Daftar - MancingMo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/register page.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Register Section -->
+<div class="register-container">
+    <div class="register-image">
+        <div class="register-image-content">
+            <h2>Bergabunglah dengan MancingMo!</h2>
+            <p>Daftar sekarang dan dapatkan akses eksklusif ke koleksi peralatan pancing terbaik, penawaran spesial, dan tips memancing dari para ahli</p>
+        </div>
+    </div>
+
+    <div class="register-form-container">
+        <div class="register-header">
+            <h1>Buat Akun</h1>
+            <p>Lengkapi informasi di bawah ini untuk mendaftar</p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="padding: 12px; margin-bottom: 20px; border-radius: 8px; background: {% if message.tags == 'error' %}#fee;{% else %}#efe;{% endif %} border: 1px solid {% if message.tags == 'error' %}#fcc;{% else %}#cfc;{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" id="registerForm">
+            {% csrf_token %}
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="first_name">Nama Depan *</label>
+                    <input type="text" id="first_name" name="first_name" placeholder="Masukkan nama depan" required>
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Nama Belakang *</label>
+                    <input type="text" id="last_name" name="last_name" placeholder="Masukkan nama belakang" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="username">Username *</label>
+                <input type="text" id="username" name="username" placeholder="Pilih username unik" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" name="email" placeholder="contoh@email.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password1">Password *</label>
+                <input type="password" id="password1" name="password1" placeholder="Minimal 8 karakter" required>
+                <div class="password-strength">
+                    <div class="strength-bar">
+                        <div class="strength-bar-fill" id="strengthBar"></div>
+                    </div>
+                    <span id="strengthText"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password2">Konfirmasi Password *</label>
+                <input type="password" id="password2" name="password2" placeholder="Masukkan ulang password" required>
+            </div>
+
+            <div class="terms-agreement">
+                <input type="checkbox" id="terms" name="terms" required>
+                <label for="terms">
+                    Saya setuju dengan <a href="#">Syarat & Ketentuan</a> dan <a href="#">Kebijakan Privasi</a> MancingMo
+                </label>
+            </div>
+
+            <button type="submit" class="btn-register" id="registerBtn">Daftar Sekarang</button>
+        </form>
+
+        <div class="login-link">
+            Sudah punya akun? <a href="{% url 'login' %}">Masuk Sekarang</a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Password strength indicator
+document.getElementById('password1').addEventListener('input', function(e) {
+    const password = e.target.value;
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+    
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+    if (password.match(/[0-9]/)) strength++;
+    if (password.match(/[^a-zA-Z0-9]/)) strength++;
+    
+    strengthBar.className = 'strength-bar-fill';
+    if (strength === 0) {
+        strengthBar.style.width = '0';
+        strengthText.textContent = '';
+    } else if (strength <= 2) {
+        strengthBar.classList.add('strength-weak');
+        strengthText.textContent = 'Lemah';
+    } else if (strength === 3) {
+        strengthBar.classList.add('strength-medium');
+        strengthText.textContent = 'Sedang';
+    } else {
+        strengthBar.classList.add('strength-strong');
+        strengthText.textContent = 'Kuat';
+    }
+});
+</script>
+{% endblock %}

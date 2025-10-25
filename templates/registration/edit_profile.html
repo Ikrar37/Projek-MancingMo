@@ -1,0 +1,126 @@
+<!-- templates/registration/edit_profile.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Profil - MancingMo{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <h1>Edit Profil</h1>
+        <p>Perbarui informasi akun Anda</p>
+    </div>
+
+    <div class="profile-content">
+        <form method="POST" enctype="multipart/form-data" class="profile-form">
+            {% csrf_token %}
+            
+            <!-- Informasi Pribadi -->
+            <div class="form-section">
+                <h2>Informasi Pribadi</h2>
+                
+                <div class="form-group">
+                    <label for="first_name">Nama Depan</label>
+                    <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="last_name">Nama Belakang</label>
+                    <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Alamat Email</label>
+                    <input type="email" id="email" name="email" value="{{ user.email }}" class="form-input" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Nomor Telepon</label>
+                    <input type="tel" id="phone" name="phone" value="{{ profile.phone }}" class="form-input" placeholder="Contoh: 081234567890">
+                </div>
+            </div>
+
+            <!-- Informasi Alamat -->
+            <div class="form-section">
+                <h2>Informasi Alamat</h2>
+                
+                <div class="form-group">
+                    <label for="address">Alamat Lengkap</label>
+                    <input type="text" id="address" name="address" value="{{ profile.address }}" class="form-input" placeholder="Jl. Contoh No. 123">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="city">Kota</label>
+                        <input type="text" id="city" name="city" value="{{ profile.city }}" class="form-input" placeholder="Contoh: Makassar">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="postal_code">Kode Pos</label>
+                        <input type="text" id="postal_code" name="postal_code" value="{{ profile.postal_code }}" class="form-input" placeholder="Contoh: 90222">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="province">Provinsi</label>
+                    <input type="text" id="province" name="province" value="{{ profile.province }}" class="form-input" placeholder="Contoh: Sulawesi Selatan">
+                </div>
+            </div>
+
+            <!-- Foto Profil -->
+            <div class="form-section">
+                <h2>Foto Profil</h2>
+                <div class="profile-picture-section">
+                    <div class="current-photo">
+                        {% if profile.photo %}
+                            <img src="{{ profile.photo.url }}" alt="Foto Profil Saat Ini" class="profile-photo">
+                        {% else %}
+                            <div class="default-photo">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="upload-section">
+                        <label class="upload-label">
+                            <i class="fas fa-upload"></i> Ubah Foto
+                            <input type="file" id="photo" name="photo" accept=".jpg,.jpeg,.png,.gif" style="display: none;">
+                        </label>
+                        <div class="file-info">
+                            <span id="file-name">Belum ada file dipilih</span>
+                        </div>
+                        <p class="file-requirements">Format yang diterima: JPG, PNG, GIF (Maks. 2MB)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informasi Tambahan -->
+            <div class="form-section">
+                <h2>Informasi Tambahan</h2>
+                
+                <div class="form-group">
+                    <label for="bio">Bio</label>
+                    <textarea id="bio" name="bio" class="form-input" rows="4" placeholder="Ceritakan tentang diri Anda...">{{ profile.bio }}</textarea>
+                </div>
+            </div>
+
+            <!-- Aksi Form -->
+            <div class="form-actions">
+                <button type="submit" class="btn-primary">
+                    <i class="fas fa-save"></i> Simpan Perubahan
+                </button>
+                <a href="{% url 'profile' %}" class="btn-secondary">
+                    <i class="fas fa-times"></i> Batal
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('photo').addEventListener('change', function(e) {
+    const fileName = e.target.files[0] ? e.target.files[0].name : 'Belum ada file dipilih';
+    document.getElementById('file-name').textContent = fileName;
+});
+</script>
+{% endblock %}
