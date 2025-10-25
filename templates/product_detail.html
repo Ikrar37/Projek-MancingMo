@@ -133,8 +133,20 @@
             <h1>{{ product.name }}</h1>
             
             <div class="rating">
-                <span class="stars">★★★★★</span>
-                <span class="rating-text">(0) | 0 Terjual</span>
+                <span class="stars">
+                    {% if rating_stats.average %}
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= rating_stats.average %}★{% else %}☆{% endif %}
+                        {% endfor %}
+                    {% else %}
+                        ☆☆☆☆☆
+                    {% endif %}
+                </span>
+                <span class="rating-text">
+                    ({{ rating_stats.average|floatformat:1|default:"0.0" }}) | 
+                    {{ rating_stats.total|default:0 }} Review{% if rating_stats.total > 1 %}s{% endif %} | 
+                    0 Terjual
+                </span>
             </div>
             
             <div class="price">Rp {{ product.price|floatformat:0|intcomma }}</div>
@@ -250,6 +262,113 @@
         </div>
     </div>
 
+    <!-- ✅ REVIEW SECTION -->
+    <div class="detail-section review-section">
+        <h2>Review Produk ({{ rating_stats.total|default:0 }})</h2>
+        
+        <!-- Rating Summary -->
+        <div class="rating-summary">
+            <div class="rating-overview">
+                <div class="rating-number">{{ rating_stats.average|floatformat:1|default:"0.0" }}</div>
+                <div class="rating-stars-large">
+                    {% if rating_stats.average %}
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= rating_stats.average %}★{% else %}☆{% endif %}
+                        {% endfor %}
+                    {% else %}
+                        ☆☆☆☆☆
+                    {% endif %}
+                </div>
+                <div class="rating-count">{{ rating_stats.total|default:0 }} review{% if rating_stats.total > 1 %}s{% endif %}</div>
+            </div>
+        </div>
+
+        <!-- Add Review Form (Only for logged in users who bought the product) -->
+        {% if user.is_authenticated %}
+            {% if can_review %}
+            <div class="add-review-form">
+                <h3>Tulis Review Anda</h3>
+                <form method="post" action="{% url 'add_review' product.id %}" id="reviewForm">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label>Rating *</label>
+                        <div class="star-rating" id="starRating">
+                            <span class="star" data-value="1">☆</span>
+                            <span class="star" data-value="2">☆</span>
+                            <span class="star" data-value="3">☆</span>
+                            <span class="star" data-value="4">☆</span>
+                            <span class="star" data-value="5">☆</span>
+                        </div>
+                        <input type="hidden" name="rating" id="ratingInput" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="comment">Komentar *</label>
+                        <textarea name="comment" id="comment" rows="4" required placeholder="Bagikan pengalaman Anda dengan produk ini..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-submit-review">Kirim Review</button>
+                </form>
+            </div>
+            {% elif user_review %}
+            <div class="user-has-reviewed">
+                <p>✓ Anda sudah memberikan review untuk produk ini</p>
+            </div>
+            {% else %}
+            <div class="cannot-review">
+                <p>Anda harus membeli produk ini terlebih dahulu untuk memberikan review</p>
+            </div>
+            {% endif %}
+        {% else %}
+        <div class="login-to-review">
+            <p><a href="{% url 'login' %}?next={{ request.path }}">Login</a> untuk memberikan review</p>
+        </div>
+        {% endif %}
+
+        <!-- Reviews List -->
+        <div class="reviews-list">
+            {% if reviews %}
+                {% for review in reviews %}
+                <div class="review-item">
+                    <div class="review-header">
+                        <div class="reviewer-info">
+                            {% if review.user.profile.photo %}
+                            <img src="{{ review.user.profile.photo.url }}" alt="{{ review.user.username }}" class="reviewer-avatar">
+                            {% else %}
+                            <div class="reviewer-avatar-placeholder">{{ review.user.username|first|upper }}</div>
+                            {% endif %}
+                            <div>
+                                <div class="reviewer-name">{{ review.user.get_full_name|default:review.user.username }}</div>
+                                <div class="review-date">{{ review.created_at|date:"d M Y" }}</div>
+                            </div>
+                        </div>
+                        {% if review.user == user %}
+                        <div class="review-actions">
+                            <button class="btn-edit-review" onclick="editReview({{ review.id }}, {{ review.rating }}, '{{ review.comment|escapejs }}')">Edit</button>
+                            <form method="post" action="{% url 'delete_review' review.id %}" style="display: inline;" onsubmit="return confirm('Yakin ingin menghapus review ini?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-delete-review">Hapus</button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="review-rating">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}
+                        {% endfor %}
+                        {% if review.is_verified_purchase %}
+                        <span class="verified-badge">✓ Pembelian Terverifikasi</span>
+                        {% endif %}
+                    </div>
+                    <div class="review-comment">{{ review.comment|linebreaks }}</div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="no-reviews">
+                <p>Belum ada review untuk produk ini. Jadilah yang pertama memberikan review!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Produk Terkait -->
     {% if related_products %}
     <div class="related-products">
@@ -277,6 +396,33 @@
         <button class="show-more-btn" onclick="window.location.href='{% url 'shop' %}'">Lihat Semua Produk</button>
     </div>
     {% endif %}
+</div>
+
+<!-- Edit Review Modal -->
+<div id="editReviewModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeEditModal()">&times;</span>
+        <h3>Edit Review</h3>
+        <form method="post" id="editReviewForm">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Rating *</label>
+                <div class="star-rating" id="editStarRating">
+                    <span class="star" data-value="1">☆</span>
+                    <span class="star" data-value="2">☆</span>
+                    <span class="star" data-value="3">☆</span>
+                    <span class="star" data-value="4">☆</span>
+                    <span class="star" data-value="5">☆</span>
+                </div>
+                <input type="hidden" name="rating" id="editRatingInput" required>
+            </div>
+            <div class="form-group">
+                <label for="editComment">Komentar *</label>
+                <textarea name="comment" id="editComment" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-submit-review">Update Review</button>
+        </form>
+    </div>
 </div>
 {% endblock %}
 
@@ -350,17 +496,15 @@ function showToast(message, isError = false) {
 // ============ ADD TO CART - AJAX ============
 {% if user.is_authenticated %}
 document.getElementById('addToCartForm').addEventListener('submit', function(e) {
-    e.preventDefault(); // Prevent default form submission
+    e.preventDefault();
     
     const form = this;
     const btn = document.getElementById('addToCartBtn');
     const formData = new FormData(form);
     
-    // Add loading state
     btn.classList.add('loading');
     btn.disabled = true;
     
-    // Send AJAX request
     fetch(form.action, {
         method: 'POST',
         body: formData,
@@ -371,23 +515,18 @@ document.getElementById('addToCartForm').addEventListener('submit', function(e) 
     })
     .then(response => response.json())
     .then(data => {
-        // Remove loading state
         btn.classList.remove('loading');
         btn.disabled = false;
         
         if (data.success) {
-            // Show success toast
             showToast(data.message, false);
             
-            // Update cart badge in header
             if (typeof window.updateCartBadge === 'function') {
                 window.updateCartBadge(data.cart_count);
             }
             
-            // Reset quantity to 1
             document.getElementById('qty-input').value = 1;
         } else {
-            // Show error toast
             showToast(data.message, true);
         }
     })
@@ -406,7 +545,6 @@ function buyNow() {
     const form = document.getElementById('addToCartForm');
     const formData = new FormData(form);
     
-    // Add to cart first via AJAX
     fetch(form.action, {
         method: 'POST',
         body: formData,
@@ -418,7 +556,6 @@ function buyNow() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Redirect to cart/checkout
             window.location.href = '{% url "cart" %}';
         } else {
             showToast(data.message, true);
@@ -431,6 +568,98 @@ function buyNow() {
     {% else %}
     window.location.href = '{% url "login" %}?next={{ request.path }}';
     {% endif %}
+}
+
+// ============ STAR RATING ============
+function initStarRating(containerId, inputId) {
+    const container = document.getElementById(containerId);
+    const input = document.getElementById(inputId);
+    
+    if (!container || !input) return;
+    
+    const stars = container.querySelectorAll('.star');
+    
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            const value = this.getAttribute('data-value');
+            input.value = value;
+            
+            stars.forEach(s => {
+                if (parseInt(s.getAttribute('data-value')) <= parseInt(value)) {
+                    s.textContent = '★';
+                    s.classList.add('active');
+                } else {
+                    s.textContent = '☆';
+                    s.classList.remove('active');
+                }
+            });
+        });
+        
+        star.addEventListener('mouseover', function() {
+            const value = this.getAttribute('data-value');
+            stars.forEach(s => {
+                if (parseInt(s.getAttribute('data-value')) <= parseInt(value)) {
+                    s.textContent = '★';
+                } else {
+                    s.textContent = '☆';
+                }
+            });
+        });
+    });
+    
+    container.addEventListener('mouseleave', function() {
+        const currentValue = input.value;
+        stars.forEach(s => {
+            if (parseInt(s.getAttribute('data-value')) <= parseInt(currentValue)) {
+                s.textContent = '★';
+            } else {
+                s.textContent = '☆';
+            }
+        });
+    });
+}
+
+// Initialize star ratings
+initStarRating('starRating', 'ratingInput');
+initStarRating('editStarRating', 'editRatingInput');
+
+// ============ EDIT REVIEW MODAL ============
+function editReview(reviewId, rating, comment) {
+    const modal = document.getElementById('editReviewModal');
+    const form = document.getElementById('editReviewForm');
+    const ratingInput = document.getElementById('editRatingInput');
+    const commentInput = document.getElementById('editComment');
+    
+    form.action = `/review/${reviewId}/edit/`;
+    ratingInput.value = rating;
+    commentInput.value = comment;
+    
+    // Set star display
+    const stars = document.querySelectorAll('#editStarRating .star');
+    stars.forEach(star => {
+        const value = parseInt(star.getAttribute('data-value'));
+        if (value <= rating) {
+            star.textContent = '★';
+            star.classList.add('active');
+        } else {
+            star.textContent = '☆';
+            star.classList.remove('active');
+        }
+    });
+    
+    modal.style.display = 'block';
+}
+
+function closeEditModal() {
+    document.getElementById('editReviewModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('editReviewModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
 }
 </script>
 {% endblock %}

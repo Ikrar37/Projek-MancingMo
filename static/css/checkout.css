@@ -115,46 +115,81 @@
 
 /* Login Status */
 .login-status {
-    background: #f8f9ff;
-    padding: 20px;
-    border-radius: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 25px;
+    border-radius: 12px;
     margin-bottom: 25px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 15px;
+    gap: 20px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
 }
 
 .status-text {
-    font-size: 14px;
-    color: #666;
-    margin: 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0 0 5px 0;
+    font-weight: 500;
 }
 
 .status-value {
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
     margin: 0;
 }
 
-.use-default-btn {
-    background: #4285f4;
+/* Single Button Style - Modern & Eye-catching */
+.use-saved-address-btn {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 5px;
+    padding: 12px 24px;
+    border-radius: 8px;
     font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
-    transition: background 0.3s;
+    gap: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+    position: relative;
+    overflow: hidden;
 }
 
-.use-default-btn:hover {
-    background: #3367d6;
+.use-saved-address-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.use-saved-address-btn:hover::before {
+    left: 100%;
+}
+
+.use-saved-address-btn:hover {
+    background: linear-gradient(135deg, #1976D2 0%, #0D47A1 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(33, 150, 243, 0.5);
+}
+
+.use-saved-address-btn:active {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(33, 150, 243, 0.4);
+}
+
+.use-saved-address-btn svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
 }
 
 /* Address Notice */
@@ -178,6 +213,13 @@
     margin: 0;
     color: #856404;
     font-size: 14px;
+    line-height: 1.5;
+}
+
+.address-notice a {
+    color: #0056b3;
+    text-decoration: underline;
+    font-weight: 500;
 }
 
 /* Form Elements */
@@ -223,7 +265,7 @@
 
 .form-checkbox {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     margin-bottom: 25px;
 }
@@ -232,6 +274,8 @@
     width: 18px;
     height: 18px;
     cursor: pointer;
+    margin-top: 2px;
+    flex-shrink: 0;
 }
 
 .form-checkbox label {
@@ -239,6 +283,7 @@
     color: #666;
     cursor: pointer;
     margin: 0;
+    line-height: 1.5;
 }
 
 /* Buttons */
@@ -252,11 +297,13 @@
     font-weight: 600;
     cursor: pointer;
     width: 100%;
-    transition: background 0.3s;
+    transition: all 0.3s;
 }
 
 .btn-continue:hover {
     background: #3367d6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
 }
 
 /* Payment Section */
@@ -333,14 +380,25 @@
     border-color: #4285f4;
 }
 
+.payment-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .payment-name {
     font-size: 15px;
     font-weight: 500;
     color: #333;
 }
 
+.payment-desc {
+    font-size: 12px;
+    color: #666;
+}
+
 .btn-checkout {
-    background: #4285f4;
+    background: #34a853;
     color: white;
     border: none;
     padding: 14px 40px;
@@ -349,11 +407,13 @@
     font-weight: 600;
     cursor: pointer;
     width: 100%;
-    transition: background 0.3s;
+    transition: all 0.3s;
 }
 
 .btn-checkout:hover {
-    background: #3367d6;
+    background: #2d8e47;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 168, 83, 0.3);
 }
 
 /* Right Column - Order Summary */
@@ -503,6 +563,16 @@
 
     .checkout-content .container {
         padding: 0 20px;
+    }
+
+    .login-status {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .use-saved-address-btn {
+        width: 100%;
+        justify-content: center;
     }
 }
 

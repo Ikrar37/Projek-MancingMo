@@ -8,7 +8,8 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Sum, Count, Q
-from .models import Product, Category, Cart, CartItem, Order, OrderItem, ShippingAddress, ContactMessage, UserProfile
+from .models import Product, Category, Cart, CartItem, Order, OrderItem, ShippingAddress, ContactMessage, UserProfile, ProductReview
+from django.db.models import Avg
 from decimal import Decimal
 from django.contrib.auth.forms import PasswordChangeForm
 
@@ -58,19 +59,143 @@ def shop(request):
 
 
 def product_detail(request, slug):
-    """View untuk halaman detail produk"""
+    """View untuk halaman detail produk dengan review"""
     product = get_object_or_404(Product, slug=slug, is_active=True)
     related_products = Product.objects.filter(
         category=product.category,
         is_active=True
     ).exclude(id=product.id)[:4]
     
+    # Ambil semua reviews untuk produk ini
+    reviews = product.reviews.select_related('user', 'user__profile').all()
+    
+    # Hitung rating rata-rata dan jumlah review
+    rating_stats = product.reviews.aggregate(
+        average=Avg('rating'),
+        total=Count('id')
+    )
+    
+    # Cek apakah user sudah pernah review
+    user_review = None
+    can_review = False
+    if request.user.is_authenticated:
+        user_review = product.reviews.filter(user=request.user).first()
+        
+        # User bisa review jika sudah pernah beli dan belum pernah review
+        has_purchased = OrderItem.objects.filter(
+            order__user=request.user,
+            product=product,
+            order__status__in=['paid', 'processing', 'shipped', 'delivered']
+        ).exists()
+        
+        can_review = has_purchased and not user_review
+    
     context = {
         'product': product,
         'related_products': related_products,
+        'reviews': reviews,
+        'rating_stats': rating_stats,
+        'user_review': user_review,
+        'can_review': can_review,
     }
     
     return render(request, 'product_detail.html', context)
+
+
+# TAMBAHKAN fungsi-fungsi baru untuk review:
+
+@login_required
+@require_POST
+def add_review(request, product_id):
+    """View untuk menambahkan review produk"""
+    product = get_object_or_404(Product, id=product_id, is_active=True)
+    
+    # Cek apakah user sudah pernah review
+    if ProductReview.objects.filter(product=product, user=request.user).exists():
+        messages.error(request, 'Anda sudah memberikan review untuk produk ini!')
+        return redirect('product_detail', slug=product.slug)
+    
+    # Cek apakah user pernah membeli produk ini
+    has_purchased = OrderItem.objects.filter(
+        order__user=request.user,
+        product=product,
+        order__status__in=['paid', 'processing', 'shipped', 'delivered']
+    ).exists()
+    
+    if not has_purchased:
+        messages.error(request, 'Anda harus membeli produk ini terlebih dahulu untuk memberikan review!')
+        return redirect('product_detail', slug=product.slug)
+    
+    # Ambil data dari form
+    rating = request.POST.get('rating')
+    comment = request.POST.get('comment', '').strip()
+    
+    # Validasi
+    if not rating or not comment:
+        messages.error(request, 'Rating dan komentar wajib diisi!')
+        return redirect('product_detail', slug=product.slug)
+    
+    try:
+        rating = int(rating)
+        if rating < 1 or rating > 5:
+            raise ValueError
+    except (ValueError, TypeError):
+        messages.error(request, 'Rating tidak valid!')
+        return redirect('product_detail', slug=product.slug)
+    
+    # Buat review
+    ProductReview.objects.create(
+        product=product,
+        user=request.user,
+        rating=rating,
+        comment=comment
+    )
+    
+    messages.success(request, 'Review berhasil ditambahkan! Terima kasih atas feedback Anda.')
+    return redirect('product_detail', slug=product.slug)
+
+
+@login_required
+@require_POST
+def edit_review(request, review_id):
+    """View untuk mengedit review"""
+    review = get_object_or_404(ProductReview, id=review_id, user=request.user)
+    
+    rating = request.POST.get('rating')
+    comment = request.POST.get('comment', '').strip()
+    
+    # Validasi
+    if not rating or not comment:
+        messages.error(request, 'Rating dan komentar wajib diisi!')
+        return redirect('product_detail', slug=review.product.slug)
+    
+    try:
+        rating = int(rating)
+        if rating < 1 or rating > 5:
+            raise ValueError
+    except (ValueError, TypeError):
+        messages.error(request, 'Rating tidak valid!')
+        return redirect('product_detail', slug=review.product.slug)
+    
+    # Update review
+    review.rating = rating
+    review.comment = comment
+    review.save()
+    
+    messages.success(request, 'Review berhasil diperbarui!')
+    return redirect('product_detail', slug=review.product.slug)
+
+
+@login_required
+@require_POST
+def delete_review(request, review_id):
+    """View untuk menghapus review"""
+    review = get_object_or_404(ProductReview, id=review_id, user=request.user)
+    product_slug = review.product.slug
+    review.delete()
+    
+    messages.success(request, 'Review berhasil dihapus!')
+    return redirect('product_detail', slug=product_slug)
 
 
 def about(request):
@@ -485,9 +610,11 @@ def remove_from_cart(request, item_id):
 
 # ==================== CHECKOUT VIEWS ====================
 
+# GANTI fungsi checkout yang lama dengan ini:
+
 @login_required
 def checkout(request):
-    """View untuk halaman checkout"""
+    """View untuk halaman checkout - Terintegrasi dengan UserProfile"""
     cart = get_object_or_404(Cart, user=request.user)
     
     # Validasi cart tidak kosong
@@ -495,7 +622,10 @@ def checkout(request):
         messages.error(request, 'Keranjang Anda kosong!')
         return redirect('cart')
     
-    # Ambil alamat default user (jika ada)
+    # Ambil profile user untuk auto-fill
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+    
+    # Ambil alamat default dari ShippingAddress (jika ada)
     default_address = ShippingAddress.objects.filter(user=request.user, is_default=True).first()
     
     # Hitung estimasi pengiriman (contoh: 10.000 flat rate)
@@ -507,13 +637,14 @@ def checkout(request):
         phone = request.POST.get('phone')
         address = request.POST.get('address')
         city = request.POST.get('city')
+        province = request.POST.get('province', '')  # ✅ TAMBAHAN BARU
         postal_code = request.POST.get('postal_code', '')
         payment_method = request.POST.get('payment_method')
         save_address = request.POST.get('save_address')
         
-        # Validasi data
+        # Validasi data (province opsional tapi direkomendasikan)
         if not all([full_name, phone, address, city, payment_method]):
-            messages.error(request, 'Mohon lengkapi semua data!')
+            messages.error(request, 'Mohon lengkapi semua data wajib!')
             return redirect('checkout')
         
         # Hitung total
@@ -527,6 +658,7 @@ def checkout(request):
             shipping_phone=phone,
             shipping_address=address,
             shipping_city=city,
+            shipping_province=province,  # ✅ TAMBAHAN BARU
             shipping_postal_code=postal_code,
             payment_method=payment_method,
             subtotal=subtotal,
@@ -558,6 +690,7 @@ def checkout(request):
                 phone=phone,
                 address=address,
                 city=city,
+                province=province,  # ✅ TAMBAHAN BARU
                 postal_code=postal_code,
                 is_default=True
             )
@@ -572,6 +705,7 @@ def checkout(request):
     context = {
         'cart': cart,
         'cart_items': cart.items.all(),
+        'user_profile': user_profile,  # ✅ TAMBAHAN BARU
         'default_address': default_address,
         'shipping_cost': shipping_cost,
         'total': cart.get_total() + shipping_cost,

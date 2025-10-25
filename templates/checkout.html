@@ -41,10 +41,12 @@
                         <h2 class="section-title">Info Pengiriman</h2>
                         
                         <div class="login-status">
-                            <p class="status-text">Masuk sebagai</p>
-                            <p class="status-value">{{ user.first_name }} {{ user.last_name }}</p>
-                            {% if default_address %}
-                            <button type="button" class="use-default-btn" onclick="useDefaultAddress()">
+                            <div>
+                                <p class="status-text">Masuk sebagai</p>
+                                <p class="status-value">{{ user.first_name }} {{ user.last_name }}</p>
+                            </div>
+                            {% if user_profile.address or default_address %}
+                            <button type="button" class="use-saved-address-btn" onclick="useSavedAddress()">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -54,49 +56,57 @@
                             {% endif %}
                         </div>
 
+                        {% if not user_profile.address and not default_address %}
                         <div class="address-notice">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                             </svg>
-                            <p>Anda belum menyimpan alamat</p>
+                            <p>Anda belum menyimpan alamat. Lengkapi form di bawah atau <a href="{% url 'edit_profile' %}">perbarui profil</a> Anda.</p>
                         </div>
+                        {% endif %}
 
                         <div class="form-group">
-                            <label for="full_name">Nama Lengkap</label>
+                            <label for="full_name">Nama Lengkap *</label>
                             <input type="text" id="full_name" name="full_name" placeholder="Masukkan nama lengkap" 
-                                   value="{% if default_address %}{{ default_address.full_name }}{% else %}{{ user.first_name }} {{ user.last_name }}{% endif %}" required>
+                                   value="{% if user_profile.address %}{{ user.first_name }} {{ user.last_name }}{% elif default_address %}{{ default_address.full_name }}{% else %}{{ user.first_name }} {{ user.last_name }}{% endif %}" required>
                         </div>
 
                         <div class="form-group">
-                            <label for="phone">Nomor Telepon</label>
+                            <label for="phone">Nomor Telepon *</label>
                             <input type="tel" id="phone" name="phone" placeholder="Contoh: 08123456789" 
-                                   value="{% if default_address %}{{ default_address.phone }}{% endif %}" required>
+                                   value="{% if user_profile.phone %}{{ user_profile.phone }}{% elif default_address %}{{ default_address.phone }}{% endif %}" required>
                         </div>
 
                         <div class="form-group">
-                            <label for="address">Alamat Lengkap</label>
-                            <textarea id="address" name="address" rows="3" placeholder="Jl. Contoh No. 123" required>{% if default_address %}{{ default_address.address }}{% endif %}</textarea>
+                            <label for="address">Alamat Lengkap *</label>
+                            <textarea id="address" name="address" rows="3" placeholder="Jl. Contoh No. 123, RT/RW, Kelurahan, Kecamatan" required>{% if user_profile.address %}{{ user_profile.address }}{% elif default_address %}{{ default_address.address }}{% endif %}</textarea>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="city">Kota</label>
+                                <label for="city">Kota *</label>
                                 <input type="text" id="city" name="city" placeholder="Contoh: Makassar" 
-                                       value="{% if default_address %}{{ default_address.city }}{% endif %}" required>
+                                       value="{% if user_profile.city %}{{ user_profile.city }}{% elif default_address %}{{ default_address.city }}{% endif %}" required>
                             </div>
                             <div class="form-group">
-                                <label for="postal_code">Kode Pos (Opsional)</label>
-                                <input type="text" id="postal_code" name="postal_code" placeholder="90123" 
-                                       value="{% if default_address %}{{ default_address.postal_code }}{% endif %}">
+                                <label for="province">Provinsi *</label>
+                                <input type="text" id="province" name="province" placeholder="Contoh: Sulawesi Selatan" 
+                                       value="{% if user_profile.province %}{{ user_profile.province }}{% elif default_address %}{{ default_address.province }}{% endif %}" required>
                             </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="postal_code">Kode Pos (Opsional)</label>
+                            <input type="text" id="postal_code" name="postal_code" placeholder="90123" 
+                                   value="{% if user_profile.postal_code %}{{ user_profile.postal_code }}{% elif default_address %}{{ default_address.postal_code }}{% endif %}">
                         </div>
 
                         <div class="form-checkbox">
                             <input type="checkbox" id="save_address" name="save_address" value="1">
-                            <label for="save_address">Simpan alamat sebagai alamat default</label>
+                            <label for="save_address">Simpan alamat sebagai alamat default untuk pembelian berikutnya</label>
                         </div>
 
-                        <button type="button" class="btn-continue" onclick="showPayment()">Lanjutkan</button>
+                        <button type="button" class="btn-continue" onclick="showPayment()">Lanjutkan ke Pembayaran</button>
                     </div>
 
                     <!-- Pembayaran Section (Hidden by default) -->
@@ -124,7 +134,10 @@
                             <label class="payment-option">
                                 <input type="radio" name="payment_method" value="bank_transfer" required>
                                 <div class="payment-card">
-                                    <span class="payment-name">Transfer Bank</span>
+                                    <div class="payment-info">
+                                        <span class="payment-name">Transfer Bank</span>
+                                        <span class="payment-desc">BCA, BNI, Mandiri, BRI</span>
+                                    </div>
                                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                     </svg>
@@ -134,7 +147,10 @@
                             <label class="payment-option">
                                 <input type="radio" name="payment_method" value="qris" required>
                                 <div class="payment-card">
-                                    <span class="payment-name">QRIS</span>
+                                    <div class="payment-info">
+                                        <span class="payment-name">QRIS</span>
+                                        <span class="payment-desc">Scan QR dengan aplikasi mobile banking</span>
+                                    </div>
                                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                                     </svg>
@@ -142,7 +158,7 @@
                             </label>
                         </div>
 
-                        <button type="submit" class="btn-checkout">Lanjutkan</button>
+                        <button type="submit" class="btn-checkout">Buat Pesanan</button>
                     </div>
                 </form>
             </div>
@@ -196,15 +212,34 @@
 </section>
 
 <script>
-// Function to use default address
-function useDefaultAddress() {
-    // Data already filled from template
-    document.querySelector('.address-notice').style.display = 'none';
+// Data untuk auto-fill - PRIORITAS: UserProfile > Default Address
+const savedAddressData = {
+    full_name: "{% if user_profile.address %}{{ user.first_name }} {{ user.last_name }}{% elif default_address %}{{ default_address.full_name }}{% else %}{{ user.first_name }} {{ user.last_name }}{% endif %}",
+    phone: "{% if user_profile.phone %}{{ user_profile.phone }}{% elif default_address %}{{ default_address.phone }}{% endif %}",
+    address: "{% if user_profile.address %}{{ user_profile.address }}{% elif default_address %}{{ default_address.address }}{% endif %}",
+    city: "{% if user_profile.city %}{{ user_profile.city }}{% elif default_address %}{{ default_address.city }}{% endif %}",
+    province: "{% if user_profile.province %}{{ user_profile.province }}{% elif default_address %}{{ default_address.province }}{% endif %}",
+    postal_code: "{% if user_profile.postal_code %}{{ user_profile.postal_code }}{% elif default_address %}{{ default_address.postal_code }}{% endif %}"
+};
+
+// Function to use saved address (from profile or default address)
+function useSavedAddress() {
+    document.getElementById('full_name').value = savedAddressData.full_name;
+    document.getElementById('phone').value = savedAddressData.phone;
+    document.getElementById('address').value = savedAddressData.address;
+    document.getElementById('city').value = savedAddressData.city;
+    document.getElementById('province').value = savedAddressData.province;
+    document.getElementById('postal_code').value = savedAddressData.postal_code;
+    
+    // Remove notice if exists
+    const notice = document.querySelector('.address-notice');
+    if (notice) {
+        notice.remove();
+    }
 }
 
 // Function to show payment section
 function showPayment() {
-    // Validate shipping info first
     const form = document.getElementById('checkoutForm');
     const requiredFields = form.querySelectorAll('.checkout-section:first-child input[required], .checkout-section:first-child textarea[required]');
     
@@ -220,9 +255,9 @@ function showPayment() {
 
     if (isValid) {
         document.getElementById('paymentSection').style.display = 'block';
-        document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
-        alert('Mohon lengkapi semua data pengiriman!');
+        alert('Mohon lengkapi semua data pengiriman yang wajib diisi!');
     }
 }
 

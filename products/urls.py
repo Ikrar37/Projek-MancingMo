@@ -33,6 +33,11 @@ urlpatterns = [
     path('checkout/', views.checkout, name='checkout'),
     path('order/success/<int:order_id>/', views.order_success, name='order_success'),
     
+    # Reviews (BARU)
+    path('product/<int:product_id>/review/add/', views.add_review, name='add_review'),
+    path('review/<int:review_id>/edit/', views.edit_review, name='edit_review'),
+    path('review/<int:review_id>/delete/', views.delete_review, name='delete_review'),
+    
     # API
     path('api/cart-count/', views.get_cart_count, name='get_cart_count'),
 ]

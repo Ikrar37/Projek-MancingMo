@@ -142,12 +142,15 @@ def save_user_profile(sender, instance, **kwargs):
 
 # ==================== SHIPPING ADDRESS MODEL ====================
 
+# GANTI ShippingAddress Model yang lama dengan ini:
+
 class ShippingAddress(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shipping_addresses', verbose_name="Pengguna")
     full_name = models.CharField(max_length=200, verbose_name="Nama Lengkap")
     phone = models.CharField(max_length=20, verbose_name="Nomor Telepon")
     address = models.TextField(verbose_name="Alamat")
     city = models.CharField(max_length=100, verbose_name="Kota")
+    province = models.CharField(max_length=100, blank=True, verbose_name="Provinsi")  # ✅ TAMBAHAN BARU
     postal_code = models.CharField(max_length=10, blank=True, verbose_name="Kode Pos")
     is_default = models.BooleanField(default=False, verbose_name="Alamat Utama")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Dibuat Pada")
@@ -232,6 +235,8 @@ class CartItem(models.Model):
 
 # ==================== ORDER MODEL ====================
 
+# GANTI Order Model yang lama dengan ini:
+
 class Order(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Menunggu Pembayaran'),
@@ -254,6 +259,7 @@ class Order(models.Model):
     shipping_phone = models.CharField(max_length=20, verbose_name="Telepon Penerima")
     shipping_address = models.TextField(verbose_name="Alamat Pengiriman")
     shipping_city = models.CharField(max_length=100, verbose_name="Kota")
+    shipping_province = models.CharField(max_length=100, blank=True, verbose_name="Provinsi")  # ✅ TAMBAHAN BARU
     shipping_postal_code = models.CharField(max_length=10, blank=True, verbose_name="Kode Pos")
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, verbose_name="Metode Pembayaran")
     payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True, verbose_name="Bukti Pembayaran")
@@ -329,6 +335,46 @@ class ContactMessage(models.Model):
     def mark_as_read(self):
         self.is_read = True
         self.save()
+
+# ==================== PRODUCT REVIEW MODEL ====================
+
+class ProductReview(models.Model):
+    RATING_CHOICES = [
+        (1, '1 - Sangat Buruk'),
+        (2, '2 - Buruk'),
+        (3, '3 - Cukup'),
+        (4, '4 - Bagus'),
+        (5, '5 - Sangat Bagus'),
+    ]
+    
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews', verbose_name="Produk")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews', verbose_name="Pengguna")
+    rating = models.IntegerField(choices=RATING_CHOICES, verbose_name="Rating")
+    comment = models.TextField(verbose_name="Komentar")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Dibuat Pada")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Diperbarui Pada")
+    is_verified_purchase = models.BooleanField(default=False, verbose_name="Pembelian Terverifikasi")
+    
+    class Meta:
+        verbose_name = "Review Produk"
+        verbose_name_plural = "Review Produk"
+        ordering = ['-created_at']
+        unique_together = ('product', 'user')  # User hanya bisa review 1x per produk
+        app_label = 'products'
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.product.name} ({self.rating}⭐)"
+    
+    def save(self, *args, **kwargs):
+        # Cek apakah user pernah membeli produk ini
+        has_purchased = OrderItem.objects.filter(
+            order__user=self.user,
+            product=self.product,
+            order__status__in=['paid', 'processing', 'shipped', 'delivered']
+        ).exists()
+        
+        self.is_verified_purchase = has_purchased
+        super().save(*args, **kwargs)
 
 
 # ==================== PROXY MODELS FOR ADMIN SEPARATION ====================

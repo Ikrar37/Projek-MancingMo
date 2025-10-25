@@ -1,4 +1,5 @@
 from django.contrib import admin
+from .models import ProductReview
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group
 from django.utils.html import format_html
@@ -509,3 +510,26 @@ class ContactMessageAdmin(admin.ModelAdmin):
 admin.site.site_header = 'MancingMo Admin'
 admin.site.site_title = 'MancingMo Admin Portal'
 admin.site.index_title = 'Selamat Datang di MancingMo Admin'
+
+# ==================== PRODUCT REVIEW ADMIN ====================
+
+@admin.register(ProductReview)
+class ProductReviewAdmin(admin.ModelAdmin):
+    list_display = ('user', 'product', 'rating', 'is_verified_purchase', 'created_at')
+    list_filter = ('rating', 'is_verified_purchase', 'created_at')
+    search_fields = ('user__username', 'product__name', 'comment')
+    readonly_fields = ('is_verified_purchase', 'created_at', 'updated_at')
+    list_per_page = 20
+    
+    fieldsets = (
+        ('Informasi Review', {
+            'fields': ('user', 'product', 'rating', 'comment')
+        }),
+        ('Status', {
+            'fields': ('is_verified_purchase',)
+        }),
+        ('Waktu', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
