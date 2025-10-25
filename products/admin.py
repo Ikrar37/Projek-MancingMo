@@ -4,22 +4,23 @@ from django.contrib.auth.models import User, Group
 from django.utils.html import format_html
 from .models import (
     Category, Product, ProductImage, UserProfile, ShippingAddress,
-    Cart, CartItem, Order, OrderItem, ContactMessage, AdminUser, Customer
+    Cart, CartItem, Order, OrderItem, ContactMessage,
+    AdminUser, CustomerUser  # Import proxy models
 )
 
-# ==================== UNREGISTER DEFAULT USER ====================
-# Unregister User dan Group default agar bisa custom
+# ==================== UNREGISTER DEFAULT USER & GROUP ====================
+# PENTING: Unregister User default agar tidak muncul menu "Users" yang gabungan
 admin.site.unregister(User)
 admin.site.unregister(Group)
 
 
-# ==================== ADMIN USER MANAGEMENT ====================
+# ==================== ADMIN USER ADMIN (HANYA ADMIN/STAFF) ====================
 
 @admin.register(AdminUser)
 class AdminUserAdmin(BaseUserAdmin):
-    list_display = ['username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser', 'date_joined']
-    list_filter = ['is_staff', 'is_superuser', 'is_active', 'date_joined']
-    search_fields = ['username', 'email', 'first_name', 'last_name']
+    list_display = ['username', 'email', 'full_name', 'user_type', 'phone_display', 'city_display', 'date_joined']
+    list_filter = ['is_superuser', 'is_active', 'date_joined']
+    search_fields = ['username', 'email', 'first_name', 'last_name', 'profile__phone', 'profile__city']
     ordering = ['-date_joined']
     
     fieldsets = (
@@ -31,7 +32,7 @@ class AdminUserAdmin(BaseUserAdmin):
         }),
         ('Permissions', {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
-            'classes': ('collapse',)
+            'description': 'Catatan: is_staff harus TRUE untuk Admin'
         }),
         ('Tanggal Penting', {
             'fields': ('last_login', 'date_joined'),
@@ -42,25 +43,58 @@ class AdminUserAdmin(BaseUserAdmin):
     add_fieldsets = (
         ('Buat Admin Baru', {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'password1', 'password2', 'is_staff', 'is_superuser'),
+            'fields': ('username', 'email', 'password1', 'password2', 'first_name', 'last_name', 'is_staff', 'is_superuser'),
+            'description': 'is_staff akan otomatis di-set TRUE'
         }),
     )
     
     readonly_fields = ['last_login', 'date_joined']
     
     def get_queryset(self, request):
+        """Override untuk hanya menampilkan admin/staff"""
         qs = super().get_queryset(request)
-        # Hanya tampilkan user yang is_staff=True
         return qs.filter(is_staff=True)
+    
+    def save_model(self, request, obj, form, change):
+        """Override untuk memastikan is_staff=True saat membuat admin baru"""
+        if not change:  # Jika membuat user baru
+            obj.is_staff = True
+        super().save_model(request, obj, form, change)
+    
+    def full_name(self, obj):
+        if obj.first_name and obj.last_name:
+            return f"{obj.first_name} {obj.last_name}"
+        return obj.username
+    full_name.short_description = 'Nama Lengkap'
+    
+    def user_type(self, obj):
+        if obj.is_superuser:
+            return format_html('<span style="background: #e74c3c; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold;">SUPERUSER</span>')
+        elif obj.is_staff:
+            return format_html('<span style="background: #3498db; color: white; padding: 3px 8px; border-radius: 3px; font-weight: bold;">ADMIN</span>')
+        return '-'
+    user_type.short_description = 'Tipe User'
+    
+    def phone_display(self, obj):
+        if hasattr(obj, 'profile') and obj.profile.phone:
+            return obj.profile.phone
+        return '-'
+    phone_display.short_description = 'Telepon'
+    
+    def city_display(self, obj):
+        if hasattr(obj, 'profile') and obj.profile.city:
+            return obj.profile.city
+        return '-'
+    city_display.short_description = 'Kota'
 
 
-# ==================== CUSTOMER USER MANAGEMENT ====================
+# ==================== CUSTOMER USER ADMIN (HANYA CUSTOMER) ====================
 
-@admin.register(Customer)
-class CustomerAdmin(BaseUserAdmin):
+@admin.register(CustomerUser)
+class CustomerUserAdmin(BaseUserAdmin):
     list_display = ['username', 'email', 'full_name', 'phone_display', 'city_display', 'total_orders', 'date_joined']
-    list_filter = ['is_active', 'date_joined', 'profile__city', 'profile__gender']
-    search_fields = ['username', 'email', 'first_name', 'last_name', 'profile__phone', 'profile__city']
+    list_filter = ['is_active', 'date_joined', 'profile__gender', 'profile__city']
+    search_fields = ['username', 'email', 'first_name', 'last_name', 'profile__phone', 'profile__whatsapp', 'profile__city']
     ordering = ['-date_joined']
     
     fieldsets = (
@@ -70,8 +104,9 @@ class CustomerAdmin(BaseUserAdmin):
         ('Informasi Personal', {
             'fields': ('first_name', 'last_name', 'email')
         }),
-        ('Status Akun', {
-            'fields': ('is_active',)
+        ('Status', {
+            'fields': ('is_active',),
+            'description': 'Customer tidak memiliki akses admin'
         }),
         ('Tanggal Penting', {
             'fields': ('last_login', 'date_joined'),
@@ -83,15 +118,27 @@ class CustomerAdmin(BaseUserAdmin):
         ('Buat Customer Baru', {
             'classes': ('wide',),
             'fields': ('username', 'email', 'password1', 'password2', 'first_name', 'last_name'),
+            'description': 'Customer tidak akan memiliki akses admin (is_staff=False)'
         }),
     )
     
     readonly_fields = ['last_login', 'date_joined']
     
     def get_queryset(self, request):
+        """Override untuk hanya menampilkan customer (non-staff)"""
         qs = super().get_queryset(request)
-        # Hanya tampilkan user yang is_staff=False (customer)
         return qs.filter(is_staff=False)
+    
+    def save_model(self, request, obj, form, change):
+        """Override untuk memastikan is_staff=False saat membuat customer baru"""
+        if not change:  # Jika membuat user baru
+            obj.is_staff = False
+            obj.is_superuser = False
+        super().save_model(request, obj, form, change)
+    
+    def has_delete_permission(self, request, obj=None):
+        """Customer dapat dihapus oleh admin"""
+        return request.user.is_superuser
     
     def full_name(self, obj):
         if obj.first_name and obj.last_name:
@@ -115,7 +162,7 @@ class CustomerAdmin(BaseUserAdmin):
         count = obj.orders.count()
         if count > 0:
             return format_html('<span style="color: green; font-weight: bold;">{} Pesanan</span>', count)
-        return format_html('<span style="color: gray;">Belum ada pesanan</span>')
+        return format_html('<span style="color: gray;">0 Pesanan</span>')
     total_orders.short_description = 'Total Pesanan'
 
 
@@ -230,7 +277,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         ('Informasi Kontak', {
             'fields': ('phone', 'whatsapp')
         }),
-        ('Informasi Pribadi', {
+        ('Informasi Personal', {
             'fields': ('birth_date', 'gender', 'bio')
         }),
         ('Alamat', {
@@ -459,13 +506,6 @@ class ContactMessageAdmin(admin.ModelAdmin):
 
 # ==================== ADMIN SITE CUSTOMIZATION ====================
 
-# Customize admin site header, title, and index title
 admin.site.site_header = 'MancingMo Admin'
 admin.site.site_title = 'MancingMo Admin Portal'
 admin.site.index_title = 'Selamat Datang di MancingMo Admin'
-
-
-# ==================== JANGAN REGISTER MODEL INI (SUDAH ADA INLINE) ====================
-# ProductImage - sudah ada di ProductAdmin sebagai inline
-# CartItem - sudah ada di CartAdmin sebagai inline  
-# OrderItem - sudah ada di OrderAdmin sebagai inline

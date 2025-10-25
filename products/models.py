@@ -4,32 +4,6 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-# ==================== PROXY MODELS FOR USER SEPARATION ====================
-
-class AdminUser(User):
-    """
-    Proxy model untuk Admin/Staff users
-    Digunakan untuk memisahkan tampilan admin dan customer di admin dashboard
-    """
-    class Meta:
-        proxy = True
-        verbose_name = "Admin"
-        verbose_name_plural = "Admin"
-        app_label = 'auth'  # Tetap di bagian Authentication and Authorization
-
-
-class Customer(User):
-    """
-    Proxy model untuk Customer users
-    Digunakan untuk memisahkan tampilan admin dan customer di admin dashboard
-    """
-    class Meta:
-        proxy = True
-        verbose_name = "User"
-        verbose_name_plural = "Users"
-        app_label = 'auth'  # Tetap di bagian Authentication and Authorization
-
-
 # ==================== CATEGORY MODEL ====================
 
 class Category(models.Model):
@@ -355,3 +329,23 @@ class ContactMessage(models.Model):
     def mark_as_read(self):
         self.is_read = True
         self.save()
+
+
+# ==================== PROXY MODELS FOR ADMIN SEPARATION ====================
+
+class AdminUser(User):
+    """Proxy model untuk menampilkan hanya Admin/Staff di Django Admin"""
+    class Meta:
+        proxy = True
+        verbose_name = "Admin"
+        verbose_name_plural = "Admin"
+        app_label = 'auth'  # Penting: tetap di app auth agar muncul di Authentication and Authorization
+
+
+class CustomerUser(User):
+    """Proxy model untuk menampilkan hanya Customer (non-staff) di Django Admin"""
+    class Meta:
+        proxy = True
+        verbose_name = "User"
+        verbose_name_plural = "User"
+        app_label = 'auth'  # Penting: tetap di app auth agar muncul di Authentication and Authorization

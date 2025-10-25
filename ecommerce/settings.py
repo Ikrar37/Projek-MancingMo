@@ -97,6 +97,12 @@ DATABASES = {
     }
 }
 
+# ==================== AUTHENTICATION BACKENDS ====================
+# ✅ PERBAIKAN: Tambahkan authentication backend secara eksplisit
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Backend default Django
+]
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
