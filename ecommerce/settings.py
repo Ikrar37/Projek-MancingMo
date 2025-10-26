@@ -229,12 +229,12 @@ UNFOLD = {
     "SITE_HEADER": "MancingMo Dashboard",
     "SITE_URL": "/",
     "SITE_ICON": {
-        "light": lambda request: "/static/image/logo.png",
-        "dark": lambda request: "/static/image/logo.png",
+        "light": lambda request: "/static/image/logo mancingmo.png",
+        "dark": lambda request: "/static/image/logo mancingmo.png",
     },
     "SITE_LOGO": {
-        "light": lambda request: "/static/image/logo.png",
-        "dark": lambda request: "/static/image/logo.png",
+        "light": lambda request: "/static/image/logo mancingmo.png",
+        "dark": lambda request: "/static/image/logo mancingmo.png",
     },
     "SITE_SYMBOL": "shopping_cart",
     "SHOW_HISTORY": True,
