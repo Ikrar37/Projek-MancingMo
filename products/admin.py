@@ -226,23 +226,22 @@ class ProductImageInline(admin.TabularInline):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = ['name', 'category', 'price', 'stock', 'is_active', 'featured', 'created_at']
-    list_filter = ['is_active', 'featured', 'category', 'created_at']
+    list_filter = ['category', 'is_active', 'featured', 'created_at']
     search_fields = ['name', 'description']
+    list_editable = ['is_active', 'featured', 'stock']
     prepopulated_fields = {'slug': ('name',)}
-    list_editable = ['price', 'stock', 'is_active', 'featured']
     ordering = ['-created_at']
     inlines = [ProductImageInline]
     
     fieldsets = (
-        ('Informasi Produk', {
-            'fields': ('name', 'slug', 'description', 'category')
+        ('Informasi Dasar', {
+            'fields': ('name', 'slug', 'category', 'description')
         }),
         ('Harga & Stok', {
             'fields': ('price', 'stock')
         }),
-        ('Media', {
-            'fields': ('image',),
-            'description': 'Upload gambar utama produk. Gambar tambahan bisa ditambahkan di bawah.'
+        ('Gambar Utama', {
+            'fields': ('image',)
         }),
         ('Status', {
             'fields': ('is_active', 'featured')
@@ -263,23 +262,20 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'phone', 'whatsapp', 'city', 'province', 'gender', 'created_at']
-    list_filter = ['gender', 'city', 'province', 'created_at']
-    search_fields = ['user__username', 'user__email', 'user__first_name', 'user__last_name', 'phone', 'whatsapp', 'city']
+    list_display = ['user', 'phone', 'whatsapp', 'city', 'gender', 'created_at']
+    list_filter = ['gender', 'city', 'created_at']
+    search_fields = ['user__username', 'user__email', 'phone', 'whatsapp', 'city']
     ordering = ['-created_at']
     
     fieldsets = (
         ('User', {
             'fields': ('user',)
         }),
-        ('Foto Profile', {
-            'fields': ('photo',)
-        }),
         ('Informasi Kontak', {
             'fields': ('phone', 'whatsapp')
         }),
         ('Informasi Personal', {
-            'fields': ('birth_date', 'gender', 'bio')
+            'fields': ('photo', 'birth_date', 'gender', 'bio')
         }),
         ('Alamat', {
             'fields': ('address', 'city', 'province', 'postal_code')
@@ -296,39 +292,41 @@ class UserProfileAdmin(admin.ModelAdmin):
         return qs.select_related('user')
 
 
-# ==================== SHIPPING ADDRESS ADMIN ====================
-
-@admin.register(ShippingAddress)
-class ShippingAddressAdmin(admin.ModelAdmin):
-    list_display = ['user', 'full_name', 'phone', 'city', 'is_default', 'created_at']
-    list_filter = ['is_default', 'city', 'created_at']
-    search_fields = ['user__username', 'full_name', 'phone', 'address', 'city']
-    list_editable = ['is_default']
-    ordering = ['-created_at']
-    
-    fieldsets = (
-        ('User', {
-            'fields': ('user',)
-        }),
-        ('Informasi Penerima', {
-            'fields': ('full_name', 'phone')
-        }),
-        ('Alamat Pengiriman', {
-            'fields': ('address', 'city', 'postal_code')
-        }),
-        ('Status', {
-            'fields': ('is_default',)
-        }),
-        ('Informasi Waktu', {
-            'fields': ('created_at',),
-            'classes': ('collapse',)
-        }),
-    )
-    readonly_fields = ['created_at']
-    
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.select_related('user')
+# ==================== SHIPPING ADDRESS ADMIN - DIHAPUS ====================
+# ShippingAddress tidak perlu ditampilkan di admin karena data lengkap sudah ada di Order
+# Jika suatu saat diperlukan lagi, uncomment kode di bawah ini:
+#
+# @admin.register(ShippingAddress)
+# class ShippingAddressAdmin(admin.ModelAdmin):
+#     list_display = ['user', 'full_name', 'phone', 'city', 'province', 'is_default', 'created_at']
+#     list_filter = ['is_default', 'city', 'province', 'created_at']
+#     search_fields = ['user__username', 'full_name', 'phone', 'city', 'address']
+#     list_editable = ['is_default']
+#     ordering = ['-created_at']
+#     
+#     fieldsets = (
+#         ('User', {
+#             'fields': ('user',)
+#         }),
+#         ('Informasi Penerima', {
+#             'fields': ('full_name', 'phone')
+#         }),
+#         ('Alamat', {
+#             'fields': ('address', 'city', 'province', 'postal_code')
+#         }),
+#         ('Status', {
+#             'fields': ('is_default',)
+#         }),
+#         ('Informasi Waktu', {
+#             'fields': ('created_at',),
+#             'classes': ('collapse',)
+#         }),
+#     )
+#     readonly_fields = ['created_at']
+#     
+#     def get_queryset(self, request):
+#         qs = super().get_queryset(request)
+#         return qs.select_related('user')
 
 
 # ==================== CART ADMIN ====================
@@ -403,7 +401,7 @@ class OrderAdmin(admin.ModelAdmin):
             'fields': ('order_number', 'user', 'status')
         }),
         ('Shipping Information', {
-            'fields': ('shipping_name', 'shipping_phone', 'shipping_address', 'shipping_city', 'shipping_postal_code')
+            'fields': ('shipping_name', 'shipping_phone', 'shipping_address', 'shipping_city', 'shipping_province', 'shipping_postal_code')
         }),
         ('Payment Information', {
             'fields': ('payment_method', 'payment_proof', 'paid_at')
