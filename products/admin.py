@@ -3,19 +3,19 @@ from .models import ProductReview
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group
 from django.utils.html import format_html
+from django import forms
 from .models import (
     Category, Product, ProductImage, UserProfile, ShippingAddress,
     Cart, CartItem, Order, OrderItem, ContactMessage,
-    AdminUser, CustomerUser  # Import proxy models
+    AdminUser, CustomerUser
 )
 
 # ==================== UNREGISTER DEFAULT USER & GROUP ====================
-# PENTING: Unregister User default agar tidak muncul menu "Users" yang gabungan
 admin.site.unregister(User)
 admin.site.unregister(Group)
 
 
-# ==================== ADMIN USER ADMIN (HANYA ADMIN/STAFF) ====================
+# ==================== ADMIN USER ADMIN ====================
 
 @admin.register(AdminUser)
 class AdminUserAdmin(BaseUserAdmin):
@@ -52,13 +52,11 @@ class AdminUserAdmin(BaseUserAdmin):
     readonly_fields = ['last_login', 'date_joined']
     
     def get_queryset(self, request):
-        """Override untuk hanya menampilkan admin/staff"""
         qs = super().get_queryset(request)
         return qs.filter(is_staff=True)
     
     def save_model(self, request, obj, form, change):
-        """Override untuk memastikan is_staff=True saat membuat admin baru"""
-        if not change:  # Jika membuat user baru
+        if not change:
             obj.is_staff = True
         super().save_model(request, obj, form, change)
     
@@ -89,7 +87,7 @@ class AdminUserAdmin(BaseUserAdmin):
     city_display.short_description = 'Kota'
 
 
-# ==================== CUSTOMER USER ADMIN (HANYA CUSTOMER) ====================
+# ==================== CUSTOMER USER ADMIN ====================
 
 @admin.register(CustomerUser)
 class CustomerUserAdmin(BaseUserAdmin):
@@ -126,19 +124,16 @@ class CustomerUserAdmin(BaseUserAdmin):
     readonly_fields = ['last_login', 'date_joined']
     
     def get_queryset(self, request):
-        """Override untuk hanya menampilkan customer (non-staff)"""
         qs = super().get_queryset(request)
         return qs.filter(is_staff=False)
     
     def save_model(self, request, obj, form, change):
-        """Override untuk memastikan is_staff=False saat membuat customer baru"""
-        if not change:  # Jika membuat user baru
+        if not change:
             obj.is_staff = False
             obj.is_superuser = False
         super().save_model(request, obj, form, change)
     
     def has_delete_permission(self, request, obj=None):
-        """Customer dapat dihapus oleh admin"""
         return request.user.is_superuser
     
     def full_name(self, obj):
@@ -213,6 +208,35 @@ class CategoryAdmin(admin.ModelAdmin):
     total_products.short_description = 'Total Produk'
 
 
+# ==================== PRODUCT FORM (CUSTOM) ====================
+
+class ProductAdminForm(forms.ModelForm):
+    """Custom form untuk memastikan semua field tampil dengan benar"""
+    
+    class Meta:
+        model = Product
+        fields = '__all__'
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'style': 'width: 100%; padding: 8px; border: 1px solid #ccc;',
+                'placeholder': 'Masukkan nama produk'
+            }),
+            'description': forms.Textarea(attrs={
+                'style': 'width: 100%; padding: 8px; border: 1px solid #ccc; min-height: 150px;',
+                'placeholder': 'Masukkan deskripsi produk',
+                'rows': 10
+            }),
+            'price': forms.NumberInput(attrs={
+                'style': 'width: 100%; padding: 8px; border: 1px solid #ccc;',
+                'placeholder': '0'
+            }),
+            'stock': forms.NumberInput(attrs={
+                'style': 'width: 100%; padding: 8px; border: 1px solid #ccc;',
+                'placeholder': '0'
+            }),
+        }
+
+
 # ==================== PRODUCT ADMIN ====================
 
 class ProductImageInline(admin.TabularInline):
@@ -225,7 +249,8 @@ class ProductImageInline(admin.TabularInline):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ['name', 'category', 'price', 'stock', 'is_active', 'featured', 'created_at']
+    form = ProductAdminForm  # Gunakan custom form
+    list_display = ['name', 'category', 'price_display', 'stock', 'is_active', 'featured', 'created_at']
     list_filter = ['category', 'is_active', 'featured', 'created_at']
     search_fields = ['name', 'description']
     list_editable = ['is_active', 'featured', 'stock']
@@ -233,25 +258,32 @@ class ProductAdmin(admin.ModelAdmin):
     ordering = ['-created_at']
     inlines = [ProductImageInline]
     
-    fieldsets = (
-        ('Informasi Dasar', {
-            'fields': ('name', 'slug', 'category', 'description')
-        }),
-        ('Harga & Stok', {
-            'fields': ('price', 'stock')
-        }),
-        ('Gambar Utama', {
-            'fields': ('image',)
-        }),
-        ('Status', {
-            'fields': ('is_active', 'featured')
-        }),
-        ('Informasi Waktu', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
+    # Gunakan fields tanpa fieldsets
+    fields = [
+        'name',
+        'slug', 
+        'category',
+        'description',
+        'price',
+        'stock',
+        'image',
+        'is_active',
+        'featured',
+        'created_at',
+        'updated_at'
+    ]
+    
     readonly_fields = ['created_at', 'updated_at']
+    
+    class Media:
+        css = {
+            'all': ('admin/css/custom_admin.css',)
+        }
+    
+    def price_display(self, obj):
+        return f"Rp {obj.price:,.0f}"
+    price_display.short_description = 'Harga'
+    price_display.admin_order_field = 'price'
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -290,43 +322,6 @@ class UserProfileAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('user')
-
-
-# ==================== SHIPPING ADDRESS ADMIN - DIHAPUS ====================
-# ShippingAddress tidak perlu ditampilkan di admin karena data lengkap sudah ada di Order
-# Jika suatu saat diperlukan lagi, uncomment kode di bawah ini:
-#
-# @admin.register(ShippingAddress)
-# class ShippingAddressAdmin(admin.ModelAdmin):
-#     list_display = ['user', 'full_name', 'phone', 'city', 'province', 'is_default', 'created_at']
-#     list_filter = ['is_default', 'city', 'province', 'created_at']
-#     search_fields = ['user__username', 'full_name', 'phone', 'city', 'address']
-#     list_editable = ['is_default']
-#     ordering = ['-created_at']
-#     
-#     fieldsets = (
-#         ('User', {
-#             'fields': ('user',)
-#         }),
-#         ('Informasi Penerima', {
-#             'fields': ('full_name', 'phone')
-#         }),
-#         ('Alamat', {
-#             'fields': ('address', 'city', 'province', 'postal_code')
-#         }),
-#         ('Status', {
-#             'fields': ('is_default',)
-#         }),
-#         ('Informasi Waktu', {
-#             'fields': ('created_at',),
-#             'classes': ('collapse',)
-#         }),
-#     )
-#     readonly_fields = ['created_at']
-#     
-#     def get_queryset(self, request):
-#         qs = super().get_queryset(request)
-#         return qs.select_related('user')
 
 
 # ==================== CART ADMIN ====================

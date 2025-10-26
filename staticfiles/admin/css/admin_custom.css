@@ -1,0 +1,100 @@
+/* Custom CSS untuk Django Admin - Memperbaiki field yang tidak terlihat */
+
+/* Pastikan semua input field terlihat */
+.form-row input[type="text"],
+.form-row input[type="number"],
+.form-row input[type="email"],
+.form-row input[type="url"],
+.form-row textarea,
+.form-row select {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #ccc !important;
+    padding: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+/* Pastikan field group terlihat */
+.form-row {
+    display: block !important;
+    margin-bottom: 20px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Pastikan label terlihat */
+.form-row label {
+    display: block !important;
+    margin-bottom: 5px !important;
+    font-weight: bold !important;
+    color: #333 !important;
+}
+
+/* Fix untuk django-autocomplete-light jika ada */
+.select2-container {
+    display: block !important;
+    width: 100% !important;
+}
+
+/* Fix untuk inline forms */
+.inline-group .tabular tr.form-row td {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Pastikan fieldset terlihat */
+fieldset {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Fix untuk prepopulated fields */
+.vTextField, .vLargeTextField, .vURLField {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #ccc !important;
+    padding: 8px !important;
+}
+
+/* Fix untuk readonly fields */
+.readonly {
+    color: #666 !important;
+    background-color: #f5f5f5 !important;
+    padding: 8px !important;
+}
+
+/* Pastikan help text terlihat */
+.help {
+    display: block !important;
+    color: #666 !important;
+    font-size: 12px !important;
+    margin-top: 5px !important;
+}
+
+/* Fix untuk file input */
+.form-row input[type="file"] {
+    display: block !important;
+    opacity: 1 !important;
+}
+
+/* Fix untuk checkbox dan radio */
+.form-row input[type="checkbox"],
+.form-row input[type="radio"] {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Force display untuk semua field */
+#content-main .form-row {
+    min-height: 40px !important;
+}
+
+/* Debug: tambahkan border merah untuk melihat field */
+/*.form-row {
+    border: 1px solid red !important;
+}*/

@@ -149,16 +149,30 @@ LOCALE_PATHS = [
 ]
 
 
-# Static files (CSS, JavaScript, Images)
+# ==================== STATIC FILES CONFIGURATION ====================
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+
+# ✅ PERBAIKAN: Tambahkan folder static untuk custom CSS admin
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',  # Folder untuk custom static files
+]
+
+# Folder untuk production (setelah collectstatic)
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files
+# ✅ TAMBAHAN: Pastikan Django bisa menemukan static files
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+
+
+# ==================== MEDIA FILES CONFIGURATION ====================
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
