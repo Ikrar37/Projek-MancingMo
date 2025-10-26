@@ -36,7 +36,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'unfold',
+    'unfold',  # ✅ HARUS DI ATAS django.contrib.admin
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -183,3 +183,188 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'profile'
 LOGOUT_REDIRECT_URL = 'home'
+
+
+# ==================== DJANGO UNFOLD CONFIGURATION ====================
+# ✅ KONFIGURASI UNFOLD ADMIN THEME
+
+def environment_callback(request):
+    """
+    Callback untuk menampilkan environment badge di admin
+    """
+    if DEBUG:
+        return ["Development", "danger"]
+    return ["Production", "success"]
+
+
+def dashboard_callback(request, context):
+    """
+    Callback untuk menambahkan data ke dashboard admin
+    ✅ DIPERBAIKI: Gunakan nama model yang benar (Order, bukan Pesanan)
+    """
+    from products.models import Order, Product
+    from django.db.models import Sum, Count
+    
+    # Hitung statistik
+    total_orders = Order.objects.count()
+    total_revenue = Order.objects.filter(
+        status='delivered'
+    ).aggregate(total=Sum('total'))['total'] or 0
+    total_products = Product.objects.count()
+    pending_orders = Order.objects.filter(status='pending').count()
+    
+    context.update({
+        "custom_stats": {
+            "total_orders": total_orders,
+            "total_revenue": total_revenue,
+            "total_products": total_products,
+            "pending_orders": pending_orders,
+        }
+    })
+    return context
+
+
+UNFOLD = {
+    "SITE_TITLE": "MancingMo Admin",
+    "SITE_HEADER": "MancingMo Dashboard",
+    "SITE_URL": "/",
+    "SITE_ICON": {
+        "light": lambda request: "/static/image/logo.png",
+        "dark": lambda request: "/static/image/logo.png",
+    },
+    "SITE_LOGO": {
+        "light": lambda request: "/static/image/logo.png",
+        "dark": lambda request: "/static/image/logo.png",
+    },
+    "SITE_SYMBOL": "shopping_cart",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "ENVIRONMENT": "ecommerce.settings.environment_callback",
+    "DASHBOARD_CALLBACK": "ecommerce.settings.dashboard_callback",
+    "COLORS": {
+        "primary": {
+            "50": "239 246 255",
+            "100": "219 234 254",
+            "200": "191 219 254",
+            "300": "147 197 253",
+            "400": "96 165 250",
+            "500": "59 130 246",
+            "600": "37 99 235",
+            "700": "29 78 216",
+            "800": "30 64 175",
+            "900": "30 58 138",
+            "950": "23 37 84",
+        },
+    },
+    "EXTENSIONS": {
+        "modeltranslation": {
+            "flags": {
+                "en": "🇬🇧",
+                "fr": "🇫🇷",
+                "nl": "🇧🇪",
+            },
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            {
+                "title": "Dashboard",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Dashboard",
+                        "icon": "dashboard",
+                        "link": lambda request: "/admin/",
+                    },
+                ],
+            },
+            {
+                "title": "Manajemen Produk",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Kategori",
+                        "icon": "category",
+                        "link": lambda request: "/admin/products/category/",
+                    },
+                    {
+                        "title": "Produk",
+                        "icon": "inventory_2",
+                        "link": lambda request: "/admin/products/product/",
+                    },
+                ],
+            },
+            {
+                "title": "Transaksi",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Pesanan",
+                        "icon": "shopping_bag",
+                        "link": lambda request: "/admin/products/order/",
+                    },
+                    {
+                        "title": "Keranjang",
+                        "icon": "shopping_cart",
+                        "link": lambda request: "/admin/products/cart/",
+                    },
+                ],
+            },
+            {
+                "title": "Pelanggan",
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": "Admin",
+                        "icon": "admin_panel_settings",
+                        "link": lambda request: "/admin/auth/adminuser/",
+                    },
+                    {
+                        "title": "Customer",
+                        "icon": "people",
+                        "link": lambda request: "/admin/auth/customeruser/",
+                    },
+                    {
+                        "title": "Profile Pengguna",
+                        "icon": "person",
+                        "link": lambda request: "/admin/products/userprofile/",
+                    },
+                    {
+                        "title": "Review",
+                        "icon": "star",
+                        "link": lambda request: "/admin/products/productreview/",
+                    },
+                ],
+            },
+            {
+                "title": "Komunikasi",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Pesan Kontak",
+                        "icon": "email",
+                        "link": lambda request: "/admin/products/contactmessage/",
+                    },
+                ],
+            },
+        ],
+    },
+    "TABS": [
+        {
+            "models": [
+                "products.product",
+            ],
+            "items": [
+                {
+                    "title": "Semua Produk",
+                    "link": lambda request: "/admin/products/product/",
+                },
+            ],
+        },
+    ],
+}
