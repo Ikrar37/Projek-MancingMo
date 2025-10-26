@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load currency_filters %}
 
 {% block title %}Checkout - MancingMo{% endblock %}
 
@@ -116,15 +117,15 @@
                         <div class="payment-summary">
                             <div class="summary-row">
                                 <span>Subtotal</span>
-                                <span class="amount">Rp {{ cart.get_total|floatformat:0 }}</span>
+                                <span class="amount">Rp {{ cart.get_total|rupiah }}</span>
                             </div>
                             <div class="summary-row">
                                 <span>Estimasi Pengiriman : 15 Sep - 20 Sep 2025</span>
-                                <span class="amount">Rp {{ shipping_cost|floatformat:0 }}</span>
+                                <span class="amount">Rp {{ shipping_cost|rupiah }}</span>
                             </div>
                             <div class="summary-row total-row">
                                 <span>Total</span>
-                                <span class="amount">Rp {{ total|floatformat:0 }}</span>
+                                <span class="amount">Rp {{ total|rupiah }}</span>
                             </div>
                         </div>
 
@@ -184,7 +185,7 @@
                                 <p class="item-spec">{{ item.product.description|truncatewords:5 }}</p>
                                 <div class="item-footer">
                                     <span class="item-quantity">x {{ item.quantity }}</span>
-                                    <span class="item-price">Rp {{ item.get_subtotal|floatformat:0 }}</span>
+                                    <span class="item-price">Rp {{ item.get_subtotal|rupiah }}</span>
                                 </div>
                             </div>
                         </div>
@@ -194,7 +195,7 @@
                     <div class="summary-totals">
                         <div class="total-row">
                             <span>Subtotal</span>
-                            <span>Rp {{ cart.get_total|floatformat:0 }}</span>
+                            <span>Rp {{ cart.get_total|rupiah }}</span>
                         </div>
                         <div class="total-row">
                             <span>Estimasi Pengiriman</span>
@@ -202,7 +203,7 @@
                         </div>
                         <div class="total-row final">
                             <span>Total</span>
-                            <span>Rp {{ cart.get_total|floatformat:0 }}</span>
+                            <span>Rp {{ cart.get_total|rupiah }}</span>
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load humanize %}
+{% load currency_filters %}
 
 {% block title %}{{ product.name }} - MancingMo{% endblock %}
 
@@ -149,7 +149,7 @@
                 </span>
             </div>
             
-            <div class="price">Rp {{ product.price|floatformat:0|intcomma }}</div>
+            <div class="price">Rp {{ product.price|rupiah }}</div>
             
             <div class="delivery-info">
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -354,46 +354,44 @@
                         {% for i in "12345" %}
                             {% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}
                         {% endfor %}
-                        {% if review.is_verified_purchase %}
-                        <span class="verified-badge">✓ Pembelian Terverifikasi</span>
+                        {% if review.verified_purchase %}
+                        <span class="verified-badge">✓ Verified Purchase</span>
                         {% endif %}
                     </div>
-                    <div class="review-comment">{{ review.comment|linebreaks }}</div>
+                    <div class="review-comment">{{ review.comment }}</div>
                 </div>
                 {% endfor %}
             {% else %}
-            <div class="no-reviews">
-                <p>Belum ada review untuk produk ini. Jadilah yang pertama memberikan review!</p>
-            </div>
+                <div class="no-reviews">
+                    <p>Belum ada review untuk produk ini. Jadilah yang pertama!</p>
+                </div>
             {% endif %}
         </div>
     </div>
 
-    <!-- Produk Terkait -->
+    <!-- Related Products -->
     {% if related_products %}
     <div class="related-products">
         <h2 class="section-title">Produk Terkait</h2>
         <div class="product-grid">
-            {% for related in related_products %}
-            <div class="product-card" onclick="window.location.href='{% url 'product_detail' related.slug %}';">
+            {% for product in related_products %}
+            <div class="product-card" onclick="window.location.href='{% url 'product_detail' product.slug %}'">
                 <div class="product-image">
-                    {% if related.images.exists %}
-                    <img src="{{ related.images.first.image.url }}" alt="{{ related.name }}">
-                    {% elif related.image %}
-                    <img src="{{ related.image.url }}" alt="{{ related.name }}">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}">
                     {% else %}
                     <img src="{% static 'image/no-image.png' %}" alt="No Image">
                     {% endif %}
                 </div>
                 <div class="product-card-info">
-                    <div class="product-name">{{ related.name }}</div>
-                    <div class="product-brand">{{ related.category.name }}</div>
-                    <div class="product-price">Rp {{ related.price|floatformat:0|intcomma }}</div>
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-brand">{{ product.category.name }}</div>
+                    <div class="product-price">Rp {{ product.price|rupiah }}</div>
                 </div>
             </div>
             {% endfor %}
         </div>
-        <button class="show-more-btn" onclick="window.location.href='{% url 'shop' %}'">Lihat Semua Produk</button>
+        <button class="show-more-btn" onclick="window.location.href='{% url 'shop' %}?category={{ product.category.slug }}'">Lihat Lebih Banyak</button>
     </div>
     {% endif %}
 </div>
@@ -401,7 +399,7 @@
 <!-- Edit Review Modal -->
 <div id="editReviewModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeEditModal()">&times;</span>
+        <span class="close" onclick="closeModal()">&times;</span>
         <h3>Edit Review</h3>
         <form method="post" id="editReviewForm">
             {% csrf_token %}
@@ -424,21 +422,21 @@
         </form>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-const maxStock = {{ product.stock }};
+// ============ IMAGE GALLERY ============
 const images = [
     {% if product.images.exists %}
-        {% for image in product.images.all %}"{{ image.image.url }}"{% if not forloop.last %},{% endif %}{% endfor %}
+        {% for image in product.images.all %}
+            "{{ image.image.url }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
     {% elif product.image %}
         "{{ product.image.url }}"
     {% endif %}
 ];
 let currentImageIndex = 0;
+const maxStock = {{ product.stock }};
 
-// ============ IMAGE GALLERY ============
 function changeImage(direction) {
     if (images.length <= 1) return;
     currentImageIndex += direction;
@@ -650,7 +648,7 @@ function editReview(reviewId, rating, comment) {
     modal.style.display = 'block';
 }
 
-function closeEditModal() {
+function closeModal() {
     document.getElementById('editReviewModal').style.display = 'none';
 }
 

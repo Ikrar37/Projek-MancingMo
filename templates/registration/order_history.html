@@ -1,6 +1,7 @@
 <!-- templates/registration/order_history.html -->
 {% extends 'base.html' %}
 {% load static %}
+{% load currency_filters %}
 
 {% block title %}Riwayat Pesanan - MancingMo{% endblock %}
 
@@ -46,15 +47,15 @@
                     <h4>Ringkasan Pesanan</h4>
                     <div class="summary-row">
                         <span>Subtotal:</span>
-                        <span>Rp {{ order.subtotal|floatformat:0 }}</span>
+                        <span>Rp {{ order.subtotal|rupiah }}</span>
                     </div>
                     <div class="summary-row">
                         <span>Ongkos Kirim:</span>
-                        <span>Rp {{ order.shipping_cost|floatformat:0 }}</span>
+                        <span>Rp {{ order.shipping_cost|rupiah }}</span>
                     </div>
                     <div class="summary-row total">
                         <span>Total:</span>
-                        <span>Rp {{ order.total|floatformat:0 }}</span>
+                        <span>Rp {{ order.total|rupiah }}</span>
                     </div>
                 </div>
 

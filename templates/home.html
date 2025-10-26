@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load humanize %}  <!-- ✅ TAMBAHKAN INI -->
+{% load currency_filters %}
 
 {% block title %}Home - MancingMo{% endblock %}
 
@@ -33,7 +33,7 @@
             <div class="product-info">
                 <div class="product-name">{{ product.name }}</div>
                 <div class="product-brand">{{ product.category.name }}</div>
-                <div class="product-price">Rp {{ product.price|floatformat:0|intcomma }}</div>  <!-- ✅ GANTI INI -->
+                <div class="product-price">Rp {{ product.price|rupiah }}</div>
             </div>
         </div>
         {% empty %}

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load humanize %}
+{% load currency_filters %}
 
 {% block title %}Shop - MancingMo{% endblock %}
 
@@ -87,7 +87,7 @@
             <div class="product-info">
                 <div class="product-name">{{ product.name }}</div>
                 <div class="product-brand">{{ product.category.name }}</div>
-                <div class="product-price">Rp {{ product.price|floatformat:0|intcomma }}</div>
+                <div class="product-price">Rp {{ product.price|rupiah }}</div>
             </div>
         </div>
         {% empty %}
