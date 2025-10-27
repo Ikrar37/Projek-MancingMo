@@ -240,37 +240,71 @@ def contact(request):
             return render(request, 'contact.html', context)
         
         # Simpan pesan ke database
-        try:
-            contact_message = ContactMessage.objects.create(
-                name=name,
-                email=email,
-                subject=subject,
-                message=message,
-                user=request.user if request.user.is_authenticated else None
-            )
-            
-            messages.success(request, f'Terima kasih {name}! Pesan Anda telah berhasil dikirim. Tim kami akan segera menghubungi Anda.')
-            return redirect('contact')
-            
-        except Exception as e:
-            messages.error(request, 'Terjadi kesalahan saat mengirim pesan. Silakan coba lagi.')
-            context = {
-                'form_data': {
-                    'name': name,
-                    'email': email,
-                    'subject': subject,
-                    'message': message,
-                }
-            }
-            return render(request, 'contact.html', context)
+        ContactMessage.objects.create(
+            name=name,
+            email=email,
+            subject=subject,
+            message=message,
+            user=request.user if request.user.is_authenticated else None
+        )
+        
+        messages.success(request, 'Pesan Anda berhasil dikirim! Kami akan segera menghubungi Anda.')
+        return redirect('contact')
     
     return render(request, 'contact.html')
 
 
-# ==================== AUTH VIEWS ====================
+# ==================== AUTHENTICATION VIEWS ====================
 
-def user_login(request):
-    """View untuk login user"""
+def register(request):
+    """View untuk halaman register"""
+    if request.user.is_authenticated:
+        return redirect('home')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        password = request.POST.get('password')
+        password_confirm = request.POST.get('password_confirm')
+        
+        # Validasi
+        if not all([username, email, first_name, password, password_confirm]):
+            messages.error(request, 'Semua field wajib diisi!')
+            return render(request, 'registration/register.html')
+        
+        if password != password_confirm:
+            messages.error(request, 'Password tidak cocok!')
+            return render(request, 'registration/register.html')
+        
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username sudah digunakan!')
+            return render(request, 'registration/register.html')
+        
+        if User.objects.filter(email=email).exists():
+            messages.error(request, 'Email sudah terdaftar!')
+            return render(request, 'registration/register.html')
+        
+        # Buat user baru
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            password=password
+        )
+        
+        # Login otomatis setelah register
+        login(request, user)
+        messages.success(request, 'Registrasi berhasil! Selamat datang di MancingMo.')
+        return redirect('home')
+    
+    return render(request, 'registration/register.html')
+
+
+def login_view(request):
+    """View untuk halaman login"""
     if request.user.is_authenticated:
         return redirect('home')
     
@@ -282,8 +316,8 @@ def user_login(request):
         
         if user is not None:
             login(request, user)
-            messages.success(request, f'Selamat datang kembali, {user.first_name or user.username}!')
             next_url = request.GET.get('next', 'home')
+            messages.success(request, f'Selamat datang kembali, {user.first_name or user.username}!')
             return redirect(next_url)
         else:
             messages.error(request, 'Username atau password salah!')
@@ -291,83 +325,44 @@ def user_login(request):
     return render(request, 'registration/login.html')
 
 
-def user_register(request):
-    """View untuk register user baru"""
-    if request.user.is_authenticated:
-        return redirect('home')
-    
-    if request.method == 'POST':
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-        
-        # Validasi password
-        if password1 != password2:
-            messages.error(request, 'Password tidak cocok!')
-            return render(request, 'registration/register.html')
-        
-        # Validasi username
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username sudah digunakan!')
-            return render(request, 'registration/register.html')
-        
-        # Validasi email
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'Email sudah terdaftar!')
-            return render(request, 'registration/register.html')
-        
-        # Buat user baru
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password1,
-            first_name=first_name,
-            last_name=last_name
-        )
-        
-        messages.success(request, 'Akun berhasil dibuat! Silakan login.')
-        return redirect('login')
-    
-    return render(request, 'registration/register.html')
-
-
-def user_logout(request):
-    """View untuk logout user"""
+def logout_view(request):
+    """View untuk logout"""
     logout(request)
     messages.success(request, 'Anda telah berhasil logout.')
     return redirect('home')
 
 
-# ==================== PROFILE VIEWS (NEW) ====================
-
 @login_required
 def profile(request):
-    """View untuk halaman profile user - Dashboard Overview"""
-    user = request.user
+    """View untuk halaman profile user dengan statistik lengkap"""
+    # Get or create user profile
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
     
-    # Pastikan user memiliki profile (auto-create jika belum ada)
-    profile, created = UserProfile.objects.get_or_create(user=user)
+    # Get recent orders
+    recent_orders = Order.objects.filter(user=request.user).order_by('-created_at')[:5]
     
-    # Hitung statistik user
-    cart_items = 0
-    if hasattr(user, 'cart'):
-        cart_items = user.cart.items.count()
+    # Calculate statistics
+    total_orders = Order.objects.filter(user=request.user).count()
     
-    # Data statistik dari Order model
-    total_orders = Order.objects.filter(user=user).count()
+    # Get cart items count
+    try:
+        cart = Cart.objects.get(user=request.user)
+        cart_items_count = cart.items.count()
+    except Cart.DoesNotExist:
+        cart_items_count = 0
     
-    # Total spent (hanya order yang sudah dibayar/delivered)
-    orders = Order.objects.filter(user=user, status__in=['paid', 'processing', 'shipped', 'delivered'])
-    total_spent = sum(order.total for order in orders)
+    # Calculate total spending (dari order yang sudah selesai/delivered)
+    total_spending = Order.objects.filter(
+        user=request.user,
+        status__in=['paid', 'processing', 'shipped', 'delivered']
+    ).aggregate(total=Sum('total'))['total'] or 0
     
     context = {
-        'profile': profile,
+        'profile': user_profile,
+        'recent_orders': recent_orders,
         'total_orders': total_orders,
-        'cart_items': cart_items,
-        'total_spent': total_spent,
+        'cart_items_count': cart_items_count,
+        'total_spending': total_spending,
     }
     
     return render(request, 'registration/profile.html', context)
@@ -375,45 +370,36 @@ def profile(request):
 
 @login_required
 def edit_profile(request):
-    """View untuk edit profile user"""
-    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    """View untuk edit profile - DENGAN DROPDOWN ALAMAT"""
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
     
     if request.method == 'POST':
-        # Update User model fields
+        # Update user data
         request.user.first_name = request.POST.get('first_name', '')
         request.user.last_name = request.POST.get('last_name', '')
         request.user.email = request.POST.get('email', '')
         request.user.save()
         
-        # Update UserProfile fields
-        profile.phone = request.POST.get('phone', '')
-        profile.whatsapp = request.POST.get('whatsapp', '')
-        
-        # Handle birth_date
-        birth_date = request.POST.get('birth_date', '')
-        if birth_date:
-            profile.birth_date = birth_date
-        else:
-            profile.birth_date = None
-            
-        profile.gender = request.POST.get('gender', '')
-        profile.address = request.POST.get('address', '')
-        profile.city = request.POST.get('city', '')
-        profile.province = request.POST.get('province', '')
-        profile.postal_code = request.POST.get('postal_code', '')
-        profile.bio = request.POST.get('bio', '')
+        # Update profile data
+        user_profile.phone = request.POST.get('phone', '')
+        user_profile.address = request.POST.get('address', '')
+        user_profile.province = request.POST.get('province', '')
+        user_profile.city = request.POST.get('city', '')
+        user_profile.district = request.POST.get('district', '')  # ✅ FIELD BARU
+        user_profile.postal_code = request.POST.get('postal_code', '')
+        user_profile.bio = request.POST.get('bio', '')
         
         # Handle photo upload
         if 'photo' in request.FILES:
-            profile.photo = request.FILES['photo']
+            user_profile.photo = request.FILES['photo']
         
-        profile.save()
+        user_profile.save()
         
         messages.success(request, 'Profile berhasil diperbarui!')
         return redirect('profile')
     
     context = {
-        'profile': profile,
+        'profile': user_profile,
     }
     
     return render(request, 'registration/edit_profile.html', context)
@@ -421,13 +407,13 @@ def edit_profile(request):
 
 @login_required
 def change_password(request):
-    """View untuk ubah password"""
+    """View untuk halaman change password"""
     if request.method == 'POST':
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
-            update_session_auth_hash(request, user)  # Keep user logged in after password change
-            messages.success(request, 'Password berhasil diubah!')
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Password Anda berhasil diubah!')
             return redirect('profile')
         else:
             for error in form.errors.values():
@@ -440,10 +426,10 @@ def change_password(request):
 
 @login_required
 def order_history(request):
-    """View untuk melihat riwayat pesanan"""
+    """View untuk halaman riwayat pesanan"""
     orders = Order.objects.filter(user=request.user).order_by('-created_at')
     
-    # Pagination - 10 orders per page
+    # Pagination
     paginator = Paginator(orders, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -456,9 +442,9 @@ def order_history(request):
 
 
 @login_required
-def order_detail(request, order_number):
+def order_detail(request, order_id):
     """View untuk detail pesanan"""
-    order = get_object_or_404(Order, order_number=order_number, user=request.user)
+    order = get_object_or_404(Order, id=order_id, user=request.user)
     
     context = {
         'order': order,
@@ -467,34 +453,11 @@ def order_detail(request, order_number):
     return render(request, 'registration/order_detail.html', context)
 
 
-@login_required
-@require_POST
-def cancel_order(request, order_number):
-    """View untuk membatalkan pesanan"""
-    order = get_object_or_404(Order, order_number=order_number, user=request.user)
-    
-    if order.status == 'pending':
-        order.status = 'cancelled'
-        order.save()
-        
-        # Kembalikan stock produk
-        for item in order.items.all():
-            product = item.product
-            product.stock += item.quantity
-            product.save()
-        
-        messages.success(request, f'Pesanan #{order_number} berhasil dibatalkan.')
-    else:
-        messages.error(request, 'Pesanan tidak dapat dibatalkan.')
-    
-    return redirect('order_history')
-
-
 # ==================== CART VIEWS ====================
 
 @login_required
 def cart(request):
-    """View untuk halaman keranjang"""
+    """View untuk halaman cart"""
     cart, created = Cart.objects.get_or_create(user=request.user)
     cart_items = cart.items.select_related('product').all()
     
@@ -507,6 +470,7 @@ def cart(request):
 
 
 @login_required
+@require_POST
 def add_to_cart(request, product_id):
     """View untuk menambah produk ke keranjang - SUPPORT AJAX"""
     product = get_object_or_404(Product, id=product_id, is_active=True)
@@ -610,11 +574,9 @@ def remove_from_cart(request, item_id):
 
 # ==================== CHECKOUT VIEWS ====================
 
-# GANTI fungsi checkout yang lama dengan ini:
-
 @login_required
 def checkout(request):
-    """View untuk halaman checkout - Terintegrasi dengan UserProfile"""
+    """View untuk halaman checkout - DENGAN DROPDOWN ALAMAT"""
     cart = get_object_or_404(Cart, user=request.user)
     
     # Validasi cart tidak kosong
@@ -636,13 +598,14 @@ def checkout(request):
         full_name = request.POST.get('full_name')
         phone = request.POST.get('phone')
         address = request.POST.get('address')
-        city = request.POST.get('city')
-        province = request.POST.get('province', '')  # ✅ TAMBAHAN BARU
+        province = request.POST.get('province', '')
+        city = request.POST.get('city', '')
+        district = request.POST.get('district', '')  # ✅ FIELD BARU
         postal_code = request.POST.get('postal_code', '')
         payment_method = request.POST.get('payment_method')
         save_address = request.POST.get('save_address')
         
-        # Validasi data (province opsional tapi direkomendasikan)
+        # Validasi data (province, district, postal_code opsional)
         if not all([full_name, phone, address, city, payment_method]):
             messages.error(request, 'Mohon lengkapi semua data wajib!')
             return redirect('checkout')
@@ -657,8 +620,9 @@ def checkout(request):
             shipping_name=full_name,
             shipping_phone=phone,
             shipping_address=address,
+            shipping_province=province,
             shipping_city=city,
-            shipping_province=province,  # ✅ TAMBAHAN BARU
+            shipping_district=district,  # ✅ FIELD BARU
             shipping_postal_code=postal_code,
             payment_method=payment_method,
             subtotal=subtotal,
@@ -689,8 +653,9 @@ def checkout(request):
                 full_name=full_name,
                 phone=phone,
                 address=address,
+                province=province,
                 city=city,
-                province=province,  # ✅ TAMBAHAN BARU
+                district=district,  # ✅ FIELD BARU
                 postal_code=postal_code,
                 is_default=True
             )
@@ -705,7 +670,7 @@ def checkout(request):
     context = {
         'cart': cart,
         'cart_items': cart.items.all(),
-        'user_profile': user_profile,  # ✅ TAMBAHAN BARU
+        'user_profile': user_profile,
         'default_address': default_address,
         'shipping_cost': shipping_cost,
         'total': cart.get_total() + shipping_cost,
@@ -733,7 +698,6 @@ def get_cart_count(request):
     """API endpoint untuk mendapatkan jumlah item di cart"""
     try:
         cart = Cart.objects.get(user=request.user)
-        # ✅ DIPERBAIKI: Menghitung produk unik bukan total kuantitas
         count = cart.get_unique_items_count()
     except Cart.DoesNotExist:
         count = 0

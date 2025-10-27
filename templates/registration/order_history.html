@@ -5,109 +5,116 @@
 
 {% block title %}Riwayat Pesanan - MancingMo{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/order_history.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="order-history-container">
     <div class="order-history-header">
         <h1>Riwayat Pesanan</h1>
-        <p>Lihat semua pesanan Anda sebelumnya dan lacak statusnya</p>
+        <p>Daftar semua pesanan Anda</p>
     </div>
 
-    <div class="orders-list">
-        {% for order in orders %}
-        <div class="order-card">
-            <div class="order-header">
-                <div class="order-info">
-                    <h3>Pesanan #{{ order.order_number }}</h3>
-                    <span class="order-date">{{ order.created_at|date:"d F Y, H:i" }}</span>
-                </div>
-                <div class="order-status">
-                    <span class="status-badge status-{{ order.status }}">
-                        {% if order.status == 'pending' %}Menunggu Pembayaran
-                        {% elif order.status == 'paid' %}Dibayar
-                        {% elif order.status == 'processing' %}Diproses
-                        {% elif order.status == 'shipped' %}Dikirim
-                        {% elif order.status == 'delivered' %}Sampai
-                        {% elif order.status == 'cancelled' %}Dibatalkan
-                        {% else %}{{ order.status }}{% endif %}
-                    </span>
-                </div>
-            </div>
-
-            <div class="order-details">
-                <div class="order-items">
-                    <h4>Item ({{ order.items.count }})</h4>
-                    <ul class="items-list">
-                        {% for item in order.items.all %}
-                        <li>{{ item.product_name }} × {{ item.quantity }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                
-                <div class="order-summary">
-                    <h4>Ringkasan Pesanan</h4>
-                    <div class="summary-row">
-                        <span>Subtotal:</span>
-                        <span>Rp {{ order.subtotal|rupiah }}</span>
+    {% if orders %}
+        <div class="orders-list">
+            {% for order in orders %}
+            <div class="order-card">
+                <div class="order-header">
+                    <div class="order-info">
+                        <h3>Pesanan #{{ order.order_number }}</h3>
+                        <p class="order-date">{{ order.created_at|date:"d F Y, H:i" }} WIB</p>
                     </div>
-                    <div class="summary-row">
-                        <span>Ongkos Kirim:</span>
-                        <span>Rp {{ order.shipping_cost|rupiah }}</span>
-                    </div>
-                    <div class="summary-row total">
-                        <span>Total:</span>
-                        <span>Rp {{ order.total|rupiah }}</span>
+                    <div class="order-status">
+                        <span class="status-badge status-{{ order.status }}">
+                            {% if order.status == 'pending' %}
+                                Menunggu Pembayaran
+                            {% elif order.status == 'paid' %}
+                                Sudah Dibayar
+                            {% elif order.status == 'processing' %}
+                                Sedang Diproses
+                            {% elif order.status == 'shipped' %}
+                                Dikirim
+                            {% elif order.status == 'delivered' %}
+                                Terkirim
+                            {% elif order.status == 'cancelled' %}
+                                Dibatalkan
+                            {% endif %}
+                        </span>
                     </div>
                 </div>
 
-                <div class="shipping-address">
-                    <h4>Alamat Pengiriman</h4>
-                    <p><strong>{{ order.shipping_name }}</strong></p>
-                    <p>{{ order.shipping_address }}</p>
-                    <p>{{ order.shipping_city }}, {{ order.shipping_postal_code }}</p>
-                    <p>📞 {{ order.shipping_phone }}</p>
+                <div class="order-details">
+                    <div class="order-items">
+                        <h4>Produk</h4>
+                        <ul class="items-list">
+                            {% for item in order.items.all|slice:":3" %}
+                            <li>{{ item.product_name }} (x{{ item.quantity }})</li>
+                            {% endfor %}
+                            {% if order.items.count > 3 %}
+                            <li><em>+{{ order.items.count|add:"-3" }} produk lainnya</em></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <div class="order-summary">
+                        <h4>Ringkasan</h4>
+                        <div class="summary-row">
+                            <span>Subtotal:</span>
+                            <span>Rp {{ order.subtotal|rupiah }}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Ongkir:</span>
+                            <span>Rp {{ order.shipping_cost|rupiah }}</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Total:</span>
+                            <strong>Rp {{ order.total|rupiah }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="shipping-address">
+                        <h4>Alamat Pengiriman</h4>
+                        <p><strong>{{ order.shipping_name }}</strong></p>
+                        <p>{{ order.shipping_address }}</p>
+                        <p>{{ order.shipping_city }}{% if order.shipping_postal_code %}, {{ order.shipping_postal_code }}{% endif %}</p>
+                        <p>📞 {{ order.shipping_phone }}</p>
+                    </div>
+                </div>
+
+                <div class="order-actions">
+                    <a href="{% url 'order_detail' order.id %}" class="btn-outline">
+                        <i class="fas fa-eye"></i> Lihat Detail
+                    </a>
                 </div>
             </div>
-
-            <div class="order-actions">
-                <a href="{% url 'order_detail' order.order_number %}" class="btn-outline">
-                    <i class="fas fa-eye"></i> Lihat Detail
-                </a>
-                {% if order.status == 'pending' %}
-                <form method="POST" action="{% url 'cancel_order' order.order_number %}" style="display: inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-danger" onclick="return confirm('Apakah Anda yakin ingin membatalkan pesanan ini?')">
-                        <i class="fas fa-times"></i> Batalkan Pesanan
-                    </button>
-                </form>
-                {% endif %}
-            </div>
+            {% endfor %}
         </div>
-        {% empty %}
+
+        <!-- Pagination -->
+        {% if orders.has_other_pages %}
+        <div class="pagination">
+            {% if orders.has_previous %}
+                <a href="?page={{ orders.previous_page_number }}">« Sebelumnya</a>
+            {% endif %}
+
+            <span class="current">
+                Halaman {{ orders.number }} dari {{ orders.paginator.num_pages }}
+            </span>
+
+            {% if orders.has_next %}
+                <a href="?page={{ orders.next_page_number }}">Selanjutnya »</a>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    {% else %}
         <div class="empty-state">
             <i class="fas fa-shopping-bag"></i>
-            <h3>Belum ada pesanan</h3>
-            <p>Anda belum melakukan pesanan apapun.</p>
+            <h3>Belum Ada Pesanan</h3>
+            <p>Anda belum memiliki riwayat pesanan.</p>
             <a href="{% url 'shop' %}" class="btn-primary">Mulai Belanja</a>
         </div>
-        {% endfor %}
-    </div>
-
-    {% if orders.has_other_pages %}
-    <div class="pagination">
-        {% if orders.has_previous %}
-            <a href="?page=1">&laquo; Pertama</a>
-            <a href="?page={{ orders.previous_page_number }}">Sebelumnya</a>
-        {% endif %}
-
-        <span class="current">
-            Halaman {{ orders.number }} dari {{ orders.paginator.num_pages }}
-        </span>
-
-        {% if orders.has_next %}
-            <a href="?page={{ orders.next_page_number }}">Selanjutnya</a>
-            <a href="?page={{ orders.paginator.num_pages }}">Terakhir &raquo;</a>
-        {% endif %}
-    </div>
     {% endif %}
 </div>
 {% endblock %}

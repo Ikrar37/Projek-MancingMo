@@ -10,18 +10,17 @@ urlpatterns = [
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),
     
-    # Authentication (sesuai nama fungsi asli)
-    path('register/', views.user_register, name='register'),
-    path('login/', views.user_login, name='login'),
-    path('logout/', views.user_logout, name='logout'),
+    # Authentication - ✅ DIPERBAIKI: Sesuaikan dengan nama fungsi di views.py
+    path('register/', views.register, name='register'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
     
-    # Profile (BARU)
+    # Profile
     path('profile/', views.profile, name='profile'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/change-password/', views.change_password, name='change_password'),
     path('profile/orders/', views.order_history, name='order_history'),
-    path('profile/orders/<str:order_number>/', views.order_detail, name='order_detail'),
-    path('profile/orders/<str:order_number>/cancel/', views.cancel_order, name='cancel_order'),
+    path('profile/orders/<int:order_id>/', views.order_detail, name='order_detail'),
     
     # Cart
     path('cart/', views.cart, name='cart'),
@@ -33,7 +32,7 @@ urlpatterns = [
     path('checkout/', views.checkout, name='checkout'),
     path('order/success/<int:order_id>/', views.order_success, name='order_success'),
     
-    # Reviews (BARU)
+    # Reviews
     path('product/<int:product_id>/review/add/', views.add_review, name='add_review'),
     path('review/<int:review_id>/edit/', views.edit_review, name='edit_review'),
     path('review/<int:review_id>/delete/', views.delete_review, name='delete_review'),

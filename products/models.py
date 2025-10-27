@@ -101,8 +101,9 @@ class UserProfile(models.Model):
     birth_date = models.DateField(blank=True, null=True, verbose_name="Tanggal Lahir")
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, verbose_name="Jenis Kelamin")
     address = models.TextField(blank=True, verbose_name="Alamat Lengkap")
-    city = models.CharField(max_length=100, blank=True, verbose_name="Kota")
     province = models.CharField(max_length=100, blank=True, verbose_name="Provinsi")
+    city = models.CharField(max_length=100, blank=True, verbose_name="Kota/Kabupaten")
+    district = models.CharField(max_length=100, blank=True, verbose_name="Kecamatan")  # ✅ FIELD BARU
     postal_code = models.CharField(max_length=10, blank=True, verbose_name="Kode Pos")
     bio = models.TextField(blank=True, verbose_name="Bio/Deskripsi")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Dibuat Pada")
@@ -120,6 +121,8 @@ class UserProfile(models.Model):
         parts = []
         if self.address:
             parts.append(self.address)
+        if self.district:
+            parts.append(self.district)
         if self.city:
             parts.append(self.city)
         if self.province:
@@ -142,15 +145,14 @@ def save_user_profile(sender, instance, **kwargs):
 
 # ==================== SHIPPING ADDRESS MODEL ====================
 
-# GANTI ShippingAddress Model yang lama dengan ini:
-
 class ShippingAddress(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shipping_addresses', verbose_name="Pengguna")
     full_name = models.CharField(max_length=200, verbose_name="Nama Lengkap")
     phone = models.CharField(max_length=20, verbose_name="Nomor Telepon")
     address = models.TextField(verbose_name="Alamat")
-    city = models.CharField(max_length=100, verbose_name="Kota")
-    province = models.CharField(max_length=100, blank=True, verbose_name="Provinsi")  # ✅ TAMBAHAN BARU
+    province = models.CharField(max_length=100, blank=True, verbose_name="Provinsi")
+    city = models.CharField(max_length=100, verbose_name="Kota/Kabupaten")
+    district = models.CharField(max_length=100, blank=True, verbose_name="Kecamatan")  # ✅ FIELD BARU
     postal_code = models.CharField(max_length=10, blank=True, verbose_name="Kode Pos")
     is_default = models.BooleanField(default=False, verbose_name="Alamat Utama")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Dibuat Pada")
@@ -191,16 +193,17 @@ class Cart(models.Model):
     
     @property
     def total_price(self):
-        """Menghitung total harga"""
-        return sum(item.subtotal for item in self.items.all())
+        """Alias untuk get_total()"""
+        return self.get_total()
     
     @property
     def unique_items_count(self):
-        """Menghitung jumlah produk unik (bukan kuantitas)"""
+        """Menghitung jumlah produk unik di cart"""
         return self.items.count()
     
     def get_total(self):
-        return self.total_price
+        """Menghitung total harga semua item"""
+        return sum(item.get_subtotal() for item in self.items.all())
     
     def get_item_count(self):
         """Method ini menghitung kuantitas total"""
@@ -235,8 +238,6 @@ class CartItem(models.Model):
 
 # ==================== ORDER MODEL ====================
 
-# GANTI Order Model yang lama dengan ini:
-
 class Order(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Menunggu Pembayaran'),
@@ -258,8 +259,9 @@ class Order(models.Model):
     shipping_name = models.CharField(max_length=200, verbose_name="Nama Penerima")
     shipping_phone = models.CharField(max_length=20, verbose_name="Telepon Penerima")
     shipping_address = models.TextField(verbose_name="Alamat Pengiriman")
-    shipping_city = models.CharField(max_length=100, verbose_name="Kota")
-    shipping_province = models.CharField(max_length=100, blank=True, verbose_name="Provinsi")  # ✅ TAMBAHAN BARU
+    shipping_province = models.CharField(max_length=100, blank=True, verbose_name="Provinsi")
+    shipping_city = models.CharField(max_length=100, verbose_name="Kota/Kabupaten")
+    shipping_district = models.CharField(max_length=100, blank=True, verbose_name="Kecamatan")  # ✅ FIELD BARU
     shipping_postal_code = models.CharField(max_length=10, blank=True, verbose_name="Kode Pos")
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, verbose_name="Metode Pembayaran")
     payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True, verbose_name="Bukti Pembayaran")
@@ -359,14 +361,13 @@ class ProductReview(models.Model):
         verbose_name = "Review Produk"
         verbose_name_plural = "Review Produk"
         ordering = ['-created_at']
-        unique_together = ('product', 'user')  # User hanya bisa review 1x per produk
+        unique_together = ('product', 'user')
         app_label = 'products'
     
     def __str__(self):
         return f"{self.user.username} - {self.product.name} ({self.rating}⭐)"
     
     def save(self, *args, **kwargs):
-        # Cek apakah user pernah membeli produk ini
         has_purchased = OrderItem.objects.filter(
             order__user=self.user,
             product=self.product,
@@ -385,7 +386,7 @@ class AdminUser(User):
         proxy = True
         verbose_name = "Admin"
         verbose_name_plural = "Admin"
-        app_label = 'auth'  # Penting: tetap di app auth agar muncul di Authentication and Authorization
+        app_label = 'auth'
 
 
 class CustomerUser(User):
@@ -394,4 +395,4 @@ class CustomerUser(User):
         proxy = True
         verbose_name = "User"
         verbose_name_plural = "User"
-        app_label = 'auth'  # Penting: tetap di app auth agar muncul di Authentication and Authorization
+        app_label = 'auth'
