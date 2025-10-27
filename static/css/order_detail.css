@@ -75,6 +75,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    display: inline-block;
 }
 
 .status-pending {
@@ -121,6 +122,7 @@
     border-radius: 15px;
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
     border: 2px solid #F5F5F5;
+    margin-bottom: 20px;
 }
 
 .section-header {
@@ -169,13 +171,13 @@
     font-size: 16px;
     font-weight: 600;
     color: #333;
-    margin: 0 0 5px 0;
+    margin: 0 0 8px 0;
 }
 
 .item-price {
     font-size: 14px;
     color: #666;
-    margin: 0;
+    margin: 4px 0;
 }
 
 .item-total {

@@ -10,192 +10,203 @@
 
 {% block content %}
 <div class="order-detail-container">
-    <div class="page-header">
-        <div class="header-left">
-            <a href="{% url 'order_history' %}" class="back-link">
-                <i class="fas fa-arrow-left"></i> Back to Orders
-            </a>
-            <h1>Order #{{ order.id }}</h1>
-            <p class="order-date">Placed on {{ order.created_at|date:"F d, Y at H:i" }}</p>
-        </div>
-        <div class="header-right">
-            <span class="status-badge status-{{ order.status|lower }}">
+    <!-- Back Button -->
+    <div class="back-button-container">
+        <a href="{% url 'order_history' %}" class="btn-back">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Orders
+        </a>
+    </div>
+
+    <!-- Order Header Card -->
+    <div class="order-header-card">
+        <div class="header-top">
+            <div class="order-title">
+                <h1>Order #{{ order.id }}</h1>
+                <p>Placed on {{ order.created_at|date:"F d, Y" }} at {{ order.created_at|date:"H:i" }}</p>
+            </div>
+            <span class="order-status-badge status-{{ order.status|lower }}">
                 {{ order.get_status_display }}
             </span>
         </div>
     </div>
 
+    <!-- Order Content Grid -->
     <div class="order-content">
-        <div class="main-content">
-            <!-- Order Items -->
-            <div class="section order-items-section">
-                <h2>Order Items</h2>
+        <!-- Main Content -->
+        <div>
+            <!-- Order Items Section -->
+            <div class="section-card">
+                <div class="section-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 11l3 3L22 4"/>
+                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                    </svg>
+                    <h2>Order Items</h2>
+                </div>
+                
                 <div class="items-list">
                     {% for item in order.items.all %}
                     <div class="order-item">
-                        <div class="item-image">
-                            {% if item.product.image %}
-                                <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
-                            {% else %}
-                                <div class="no-image">
-                                    <i class="fas fa-image"></i>
-                                </div>
-                            {% endif %}
-                        </div>
                         <div class="item-details">
-                            <h3>{{ item.product.name }}</h3>
-                            <p class="item-price">Rp {{ item.price|rupiah }}</p>
-                            <p class="item-quantity">Quantity: {{ item.quantity }}</p>
+                            <h3>{{ item.product_name }}</h3>
+                            <p class="item-price">Rp {{ item.product_price|floatformat:0 }}</p>
+                            <p class="item-price">Quantity: {{ item.quantity }}</p>
                         </div>
                         <div class="item-total">
-                            <p class="subtotal-label">Subtotal</p>
-                            <p class="subtotal-amount">Rp {{ item.subtotal|rupiah }}</p>
+                            <span class="total-label">Subtotal</span>
+                            <span class="total-value">Rp {{ item.subtotal|floatformat:0 }}</span>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
-            </div>
 
-            <!-- Shipping Information -->
-            <div class="section shipping-section">
-                <h2>Shipping Information</h2>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <label>Name:</label>
-                        <p>{{ order.shipping_name }}</p>
+                <!-- Price Summary -->
+                <div class="price-summary">
+                    <div class="summary-row">
+                        <span class="label">Subtotal:</span>
+                        <span class="value">Rp {{ order.subtotal|floatformat:0 }}</span>
                     </div>
-                    <div class="info-item">
-                        <label>Email:</label>
-                        <p>{{ order.shipping_email }}</p>
+                    <div class="summary-row">
+                        <span class="label">Shipping:</span>
+                        <span class="value">Rp {{ order.shipping_cost|floatformat:0 }}</span>
                     </div>
-                    <div class="info-item">
-                        <label>Phone:</label>
-                        <p>{{ order.shipping_phone }}</p>
-                    </div>
-                    <div class="info-item full-width">
-                        <label>Address:</label>
-                        <p>{{ order.shipping_address }}</p>
-                        <p>{{ order.shipping_city }}, {{ order.shipping_postal_code }}</p>
+                    <div class="summary-row total">
+                        <span class="label">Total:</span>
+                        <span class="value">Rp {{ order.total|floatformat:0 }}</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Order Tracking -->
-            {% if order.tracking_number %}
-            <div class="section tracking-section">
-                <h2>Tracking Information</h2>
-                <div class="tracking-info">
-                    <p><strong>Tracking Number:</strong> {{ order.tracking_number }}</p>
-                    <a href="#" class="btn btn-outline">Track Package</a>
+            <!-- Shipping Information Section -->
+            <div class="section-card">
+                <div class="section-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="1" y="3" width="15" height="13"/>
+                        <path d="M16 8h5l3 3v5h-2m-4 0H2"/>
+                        <circle cx="5.5" cy="18.5" r="2.5"/>
+                        <circle cx="18.5" cy="18.5" r="2.5"/>
+                    </svg>
+                    <h2>Shipping Information</h2>
+                </div>
+                
+                <div class="info-content">
+                    <div class="info-item">
+                        <span class="info-label">Name:</span>
+                        <span class="info-value">{{ order.shipping_name }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Phone:</span>
+                        <span class="info-value">{{ order.shipping_phone }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Address:</span>
+                        <span class="info-value">
+                            {{ order.shipping_address }}<br>
+                            {{ order.shipping_city }}{% if order.shipping_province %}, {{ order.shipping_province }}{% endif %}{% if order.shipping_postal_code %} {{ order.shipping_postal_code }}{% endif %}
+                        </span>
+                    </div>
                 </div>
             </div>
-            {% endif %}
-
-            <!-- Order Notes -->
-            {% if order.notes %}
-            <div class="section notes-section">
-                <h2>Order Notes</h2>
-                <p>{{ order.notes }}</p>
-            </div>
-            {% endif %}
         </div>
 
-        <div class="sidebar">
-            <!-- Order Summary -->
-            <div class="summary-card">
-                <h3>Order Summary</h3>
-                <div class="summary-row">
-                    <span>Subtotal:</span>
-                    <span>Rp {{ order.total_amount|rupiah }}</span>
-                </div>
-                <div class="summary-row">
-                    <span>Shipping:</span>
-                    <span>Rp {{ order.shipping_cost|rupiah }}</span>
-                </div>
-                <div class="summary-row total">
-                    <span>Total:</span>
-                    <span>Rp {{ order.total_amount|rupiah }}</span>
-                </div>
-            </div>
-
+        <!-- Sidebar -->
+        <div class="sidebar-section">
             <!-- Payment Information -->
-            <div class="payment-card">
-                <h3>Payment Information</h3>
-                <div class="payment-info">
-                    <p><strong>Method:</strong> {{ order.payment_method|default:"N/A" }}</p>
-                    <p><strong>Status:</strong> 
-                        <span class="payment-status status-{{ order.payment_status|lower }}">
-                            {{ order.payment_status|title }}
+            <div class="section-card">
+                <div class="section-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                        <line x1="1" y1="10" x2="23" y2="10"/>
+                    </svg>
+                    <h2>Payment Information</h2>
+                </div>
+                
+                <div class="info-content">
+                    <div class="info-item">
+                        <span class="info-label">Method:</span>
+                        <span class="info-value">{{ order.get_payment_method_display }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Status:</span>
+                        <span class="order-status-badge status-{{ order.status|lower }}">
+                            {{ order.get_status_display }}
                         </span>
-                    </p>
+                    </div>
+                    {% if order.payment_proof %}
+                    <div class="info-item">
+                        <span class="info-label">Payment Proof:</span>
+                        <a href="{{ order.payment_proof.url }}" target="_blank" class="view-proof">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            View Proof
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
-            <!-- Actions -->
-            <div class="actions-card">
-                {% if order.status == 'pending' %}
-                    <button class="btn btn-danger btn-block" onclick="cancelOrder({{ order.id }})">
-                        Cancel Order
-                    </button>
-                {% endif %}
-                {% if order.status == 'delivered' %}
-                    <button class="btn btn-primary btn-block" onclick="reorder({{ order.id }})">
-                        Order Again
-                    </button>
-                {% endif %}
-                <a href="{% url 'contact' %}" class="btn btn-outline btn-block">
-                    Contact Support
-                </a>
+            <!-- Order Timeline -->
+            <div class="section-card">
+                <div class="section-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <h2>Order Status</h2>
+                </div>
+                
+                <div class="timeline">
+                    <div class="timeline-item {% if order.status in 'pending,paid,processing,shipped,delivered' %}completed{% endif %}">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>Order Placed</h4>
+                            <p>{{ order.created_at|date:"d M Y, H:i" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item {% if order.status in 'paid,processing,shipped,delivered' %}completed{% endif %}">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>Payment Confirmed</h4>
+                            {% if order.paid_at %}
+                            <p>{{ order.paid_at|date:"d M Y, H:i" }}</p>
+                            {% else %}
+                            <p>Waiting for payment</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item {% if order.status in 'processing,shipped,delivered' %}completed{% endif %}">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>Processing</h4>
+                            <p>Your order is being prepared</p>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item {% if order.status in 'shipped,delivered' %}completed{% endif %}">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>Shipped</h4>
+                            <p>Your order is on the way</p>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-item {% if order.status == 'delivered' %}completed{% elif order.status == 'cancelled' %}cancelled{% endif %}">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <h4>{% if order.status == 'cancelled' %}Cancelled{% else %}Delivered{% endif %}</h4>
+                            <p>{% if order.status == 'delivered' %}Order completed{% elif order.status == 'cancelled' %}Order cancelled{% else %}Pending delivery{% endif %}</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
-
-<script>
-function cancelOrder(orderId) {
-    if (confirm('Are you sure you want to cancel this order?')) {
-        fetch(`/orders/${orderId}/cancel/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Failed to cancel order: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('An error occurred. Please try again.');
-        });
-    }
-}
-
-function reorder(orderId) {
-    if (confirm('Add all items from this order to your cart?')) {
-        fetch(`/orders/${orderId}/reorder/`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                window.location.href = '/checkout/';
-            } else {
-                alert('Failed to reorder: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('An error occurred. Please try again.');
-        });
-    }
-}
-</script>
 {% endblock %}
