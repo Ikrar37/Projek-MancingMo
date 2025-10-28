@@ -256,49 +256,64 @@ def contact(request):
 
 # ==================== AUTHENTICATION VIEWS ====================
 
+# GANTI FUNGSI register() YANG ADA DI views.py DENGAN FUNGSI INI
+# Letakkan di sekitar baris 248 (setelah fungsi contact)
+
 def register(request):
-    """View untuk halaman register"""
+    """View untuk registrasi user baru"""
     if request.user.is_authenticated:
         return redirect('home')
     
     if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
-        password = request.POST.get('password')
-        password_confirm = request.POST.get('password_confirm')
+        # ✅ PERBAIKAN: Ambil data dari form sesuai nama field di HTML
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        username = request.POST.get('username', '').strip()
+        email = request.POST.get('email', '').strip()
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '')
         
-        # Validasi
-        if not all([username, email, first_name, password, password_confirm]):
+        # Validasi input
+        if not all([first_name, last_name, username, email, password1, password2]):
             messages.error(request, 'Semua field wajib diisi!')
             return render(request, 'registration/register.html')
         
-        if password != password_confirm:
+        if password1 != password2:
             messages.error(request, 'Password tidak cocok!')
             return render(request, 'registration/register.html')
         
+        if len(password1) < 8:
+            messages.error(request, 'Password harus minimal 8 karakter!')
+            return render(request, 'registration/register.html')
+        
+        # Cek username sudah digunakan
         if User.objects.filter(username=username).exists():
             messages.error(request, 'Username sudah digunakan!')
             return render(request, 'registration/register.html')
         
+        # Cek email sudah digunakan
         if User.objects.filter(email=email).exists():
             messages.error(request, 'Email sudah terdaftar!')
             return render(request, 'registration/register.html')
         
         # Buat user baru
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            password=password
-        )
-        
-        # Login otomatis setelah register
-        login(request, user)
-        messages.success(request, 'Registrasi berhasil! Selamat datang di MancingMo.')
-        return redirect('home')
+        try:
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password1,
+                first_name=first_name,
+                last_name=last_name
+            )
+            
+            # Login otomatis setelah registrasi
+            login(request, user)
+            messages.success(request, f'Selamat datang, {first_name}! Akun Anda berhasil dibuat.')
+            return redirect('home')
+            
+        except Exception as e:
+            messages.error(request, f'Terjadi kesalahan: {str(e)}')
+            return render(request, 'registration/register.html')
     
     return render(request, 'registration/register.html')
 
