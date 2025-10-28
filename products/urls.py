@@ -10,7 +10,7 @@ urlpatterns = [
     path('about/', views.about, name='about'),
     path('contact/', views.contact, name='contact'),
     
-    # Authentication - ✅ DIPERBAIKI: Sesuaikan dengan nama fungsi di views.py
+    # Authentication
     path('register/', views.register, name='register'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
@@ -19,8 +19,10 @@ urlpatterns = [
     path('profile/', views.profile, name='profile'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/change-password/', views.change_password, name='change_password'),
-    path('profile/orders/', views.order_history, name='order_history'),
-    path('profile/orders/<int:order_id>/', views.order_detail, name='order_detail'),
+    
+    # ✅ PERBAIKAN: Orders - pastikan view name sesuai
+    path('orders/', views.order_history, name='order_history'),  # ← URL langsung /orders/
+    path('orders/<int:order_id>/', views.order_detail, name='order_detail'),
     
     # Cart
     path('cart/', views.cart, name='cart'),
