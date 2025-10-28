@@ -385,9 +385,23 @@ def edit_profile(request):
         user_profile.address = request.POST.get('address', '')
         user_profile.province = request.POST.get('province', '')
         user_profile.city = request.POST.get('city', '')
-        user_profile.district = request.POST.get('district', '')  # ✅ FIELD BARU
+        user_profile.district = request.POST.get('district', '')
         user_profile.postal_code = request.POST.get('postal_code', '')
         user_profile.bio = request.POST.get('bio', '')
+        
+        # Handle birth_date
+        birth_date = request.POST.get('birth_date', '')
+        if birth_date:
+            user_profile.birth_date = birth_date
+        else:
+            user_profile.birth_date = None
+        
+        # Handle gender
+        gender = request.POST.get('gender', '')
+        if gender:
+            user_profile.gender = gender
+        else:
+            user_profile.gender = ''
         
         # Handle photo upload
         if 'photo' in request.FILES:
@@ -403,7 +417,6 @@ def edit_profile(request):
     }
     
     return render(request, 'registration/edit_profile.html', context)
-
 
 @login_required
 def change_password(request):
