@@ -23,6 +23,7 @@
             <p>Masukkan email dan password Anda untuk melanjutkan</p>
         </div>
 
+        <!-- ✅ HAPUS BLOK MESSAGES INI - Sudah ada di base.html
         {% if messages %}
             {% for message in messages %}
             <div class="alert alert-{{ message.tags }}" style="padding: 12px; margin-bottom: 20px; border-radius: 8px; background: {% if message.tags == 'error' %}#fee;{% else %}#efe;{% endif %} border: 1px solid {% if message.tags == 'error' %}#fcc;{% else %}#cfc;{% endif %}">
@@ -30,6 +31,7 @@
             </div>
             {% endfor %}
         {% endif %}
+        -->
 
         <form method="post" id="loginForm">
             {% csrf_token %}
