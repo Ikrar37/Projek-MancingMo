@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load currency_filters %}
 
 {% block title %}Profile - MancingMo{% endblock %}
 
@@ -88,7 +89,7 @@
                     </svg>
                 </div>
                 <div class="stat-info">
-                    <h3>Rp {{ total_spending|floatformat:0 }}</h3>
+                    <h3>Rp {{ total_spending|rupiah }}</h3>
                     <p>Total Belanja</p>
                 </div>
             </div>
