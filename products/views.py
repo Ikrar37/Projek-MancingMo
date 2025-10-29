@@ -1,4 +1,3 @@
-# products/views.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.core.paginator import Paginator
@@ -7,11 +6,17 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.db.models import Sum, Count, Q
-from .models import Product, Category, Cart, CartItem, Order, OrderItem, ShippingAddress, ContactMessage, UserProfile, ProductReview
-from django.db.models import Avg
+from django.db.models import Sum, Count, Q, Avg
 from decimal import Decimal
 from django.contrib.auth.forms import PasswordChangeForm
+from django.core.mail import send_mail
+from django.conf import settings
+
+from .models import (
+    Product, Category, Cart, CartItem, Order, OrderItem, 
+    ShippingAddress, ContactMessage, UserProfile, ProductReview, 
+    EmailVerification
+)
 
 # ==================== PUBLIC VIEWS ====================
 
@@ -260,12 +265,11 @@ def contact(request):
 # Letakkan di sekitar baris 248 (setelah fungsi contact)
 
 def register(request):
-    """View untuk registrasi user baru"""
+    """View untuk registrasi user baru DENGAN EMAIL VERIFICATION"""
     if request.user.is_authenticated:
         return redirect('home')
     
     if request.method == 'POST':
-        # ✅ PERBAIKAN: Ambil data dari form sesuai nama field di HTML
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
         username = request.POST.get('username', '').strip()
@@ -286,36 +290,134 @@ def register(request):
             messages.error(request, 'Password harus minimal 8 karakter!')
             return render(request, 'registration/register.html')
         
-        # Cek username sudah digunakan
         if User.objects.filter(username=username).exists():
             messages.error(request, 'Username sudah digunakan!')
             return render(request, 'registration/register.html')
         
-        # Cek email sudah digunakan
         if User.objects.filter(email=email).exists():
             messages.error(request, 'Email sudah terdaftar!')
             return render(request, 'registration/register.html')
         
-        # Buat user baru
         try:
+            # Buat user baru (is_active=False sampai email diverifikasi)
             user = User.objects.create_user(
                 username=username,
                 email=email,
                 password=password1,
                 first_name=first_name,
-                last_name=last_name
+                last_name=last_name,
+                is_active=False  # User tidak aktif sampai verifikasi email
             )
             
-            # Login otomatis setelah registrasi
-            login(request, user)
-            messages.success(request, f'Selamat datang, {first_name}! Akun Anda berhasil dibuat.')
-            return redirect('home')
+            # Buat email verification record
+            email_verification = EmailVerification.objects.create(user=user)
+            verification_code = email_verification.generate_code()
+            
+            # Kirim email verifikasi
+            try:
+                send_mail(
+                    subject='Verifikasi Email - MancingMo',
+                    message=f'''
+Halo {first_name},
+
+Terima kasih telah mendaftar di MancingMo!
+
+Kode verifikasi Anda adalah: {verification_code}
+
+Kode ini akan expired dalam 24 jam.
+
+Silakan masukkan kode ini di halaman verifikasi untuk mengaktifkan akun Anda.
+
+Salam,
+Tim MancingMo
+                    ''',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                    fail_silently=False,
+                )
+                
+                messages.success(request, f'Registrasi berhasil! Kode verifikasi telah dikirim ke {email}. Silakan cek email Anda.')
+                return redirect('verify_email', username=username)
+                
+            except Exception as e:
+                # Jika gagal kirim email, hapus user dan tampilkan error
+                user.delete()
+                messages.error(request, f'Gagal mengirim email verifikasi. Silakan coba lagi. Error: {str(e)}')
+                return render(request, 'registration/register.html')
             
         except Exception as e:
             messages.error(request, f'Terjadi kesalahan: {str(e)}')
             return render(request, 'registration/register.html')
     
-    return render(request, 'registration/register.html')
+    return render(request, 'registration/register.html')  # ← KEMBALIKAN KE TEMPLATE ASLI
+
+
+def verify_email(request, username):
+    """View untuk halaman verifikasi email"""
+    user = get_object_or_404(User, username=username)
+    
+    # Jika user sudah verified, redirect ke login
+    if user.is_active:
+        messages.info(request, 'Email Anda sudah diverifikasi. Silakan login.')
+        return redirect('login')
+    
+    if request.method == 'POST':
+        code = request.POST.get('code', '').strip()
+        
+        if not code:
+            messages.error(request, 'Kode verifikasi wajib diisi!')
+            return render(request, 'registration/verify_email.html', {'username': username, 'user': user})
+        
+        try:
+            email_verification = user.email_verification
+            success, message = email_verification.verify(code)
+            
+            if success:
+                messages.success(request, message)
+                return redirect('login')
+            else:
+                messages.error(request, message)
+        except EmailVerification.DoesNotExist:
+            messages.error(request, 'Data verifikasi tidak ditemukan!')
+    
+    return render(request, 'registration/verify_email.html', {'username': username, 'user': user})
+
+
+def resend_verification_code(request, username):
+    """View untuk kirim ulang kode verifikasi"""
+    user = get_object_or_404(User, username=username)
+    
+    if user.is_active:
+        messages.info(request, 'Email Anda sudah diverifikasi.')
+        return redirect('login')
+    
+    try:
+        email_verification = user.email_verification
+        verification_code = email_verification.generate_code()
+        
+        # Kirim ulang email
+        send_mail(
+            subject='Kode Verifikasi Baru - MancingMo',
+            message=f'''
+Halo {user.first_name},
+
+Kode verifikasi baru Anda adalah: {verification_code}
+
+Kode ini akan expired dalam 24 jam.
+
+Salam,
+Tim MancingMo
+            ''',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+        
+        messages.success(request, f'Kode verifikasi baru telah dikirim ke {user.email}')
+    except Exception as e:
+        messages.error(request, f'Gagal mengirim email. Error: {str(e)}')
+    
+    return redirect('verify_email', username=username)
 
 
 def login_view(request):
@@ -330,6 +432,10 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
+            if not user.is_active:
+                messages.error(request, 'Akun Anda belum diverifikasi. Silakan verifikasi email Anda terlebih dahulu.')
+                return redirect('verify_email', username=username)
+            
             login(request, user)
             next_url = request.GET.get('next', 'home')
             messages.success(request, f'Selamat datang kembali, {user.first_name or user.username}!')

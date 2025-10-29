@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import ssl
+import certifi
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,7 +32,7 @@ SECRET_KEY = 'django-insecure-*ef=ua_8#(k*on(^n2!qo+d19ztp-hvs0qw46)m&kso*q0lwxx
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # ✅ PERBAIKAN: Tambahkan wildcard untuk development
 
 
 # Application definition
@@ -52,10 +54,24 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',  # ✅ CSRF Middleware aktif
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+# ==================== CSRF CONFIGURATION ====================
+# ✅ PERBAIKAN: Konfigurasi CSRF untuk mengatasi error 403
+CSRF_COOKIE_SECURE = False  # Set True di production dengan HTTPS
+CSRF_COOKIE_HTTPONLY = False  # Set True di production
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_NAME = 'csrftoken'
+
+# ✅ TAMBAHAN: Trusted origins untuk CSRF (untuk development)
+CSRF_TRUSTED_ORIGINS = [
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
 ]
 
 ROOT_URLCONF = 'ecommerce.urls'
@@ -79,6 +95,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.media',
                 'django.template.context_processors.static',
+                'django.template.context_processors.csrf',  # ✅ TAMBAHAN: CSRF context processor
             ],
         },
     },
@@ -184,6 +201,60 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'profile'
 LOGOUT_REDIRECT_URL = 'home'
 
+# ==================== EMAIL CONFIGURATION (FIX UNTUK macOS Python 3.13) ====================
+
+# ✅ FIX SSL UNTUK macOS Python 3.13
+# Ini sangat penting untuk Python 3.13 di macOS
+os.environ['SSL_CERT_FILE'] = certifi.where()
+os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
+
+# Buat custom SSL context yang menggunakan certifi certificates
+_ssl_context = ssl.create_default_context(cafile=certifi.where())
+_ssl_context.check_hostname = False
+_ssl_context.verify_mode = ssl.CERT_NONE
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = 'muhammadikrar225@gmail.com'  # ← GANTI dengan email Anda
+EMAIL_HOST_PASSWORD = 'thko mnkk vttj ohws'  # ← GANTI dengan App Password yang benar
+DEFAULT_FROM_EMAIL = 'MancingMo <muhammadikrar225@gmail.com>'  # ← GANTI dengan email Anda
+EMAIL_TIMEOUT = 30
+
+# ✅ CRITICAL: Override SSL context untuk email backend
+# Ini adalah solusi untuk Python 3.13 di macOS
+import django.core.mail.backends.smtp
+original_starttls = django.core.mail.backends.smtp.EmailBackend.open
+
+def patched_open(self):
+    """Patched open method yang menggunakan custom SSL context"""
+    try:
+        if self.connection:
+            return False
+        connection_params = {'host': self.host, 'port': self.port}
+        if self.timeout is not None:
+            connection_params['timeout'] = self.timeout
+        if self.use_ssl:
+            connection_params['context'] = _ssl_context
+        try:
+            self.connection = self.connection_class(**connection_params)
+            if not self.use_ssl and self.use_tls:
+                self.connection.starttls(context=_ssl_context)
+            if self.username and self.password:
+                self.connection.login(self.username, self.password)
+            return True
+        except (OSError, smtplib.SMTPException) as e:
+            if not self.fail_silently:
+                raise
+            return False
+    except Exception:
+        return original_starttls(self)
+
+# Monkey patch untuk mengatasi masalah SSL di Python 3.13
+import smtplib
+django.core.mail.backends.smtp.EmailBackend.open = patched_open
 
 # ==================== DJANGO UNFOLD CONFIGURATION ====================
 # ✅ KONFIGURASI UNFOLD ADMIN THEME

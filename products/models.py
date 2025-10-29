@@ -3,6 +3,9 @@ from django.utils.text import slugify
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import secrets
+from datetime import timedelta
+from django.utils import timezone
 
 # ==================== CATEGORY MODEL ====================
 
@@ -84,6 +87,50 @@ class ProductImage(models.Model):
     
     def __str__(self):
         return f"{self.product.name} - Gambar {self.order}"
+    
+
+    # ==================== EMAIL VERIFICATION MODEL (BARU) ====================
+
+class EmailVerification(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='email_verification', verbose_name="Pengguna")
+    verification_code = models.CharField(max_length=6, verbose_name="Kode Verifikasi")
+    is_verified = models.BooleanField(default=False, verbose_name="Sudah Diverifikasi")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Dibuat Pada")
+    verified_at = models.DateTimeField(null=True, blank=True, verbose_name="Diverifikasi Pada")
+    
+    class Meta:
+        verbose_name = "Verifikasi Email"
+        verbose_name_plural = "Verifikasi Email"
+        app_label = 'products'
+    
+    def __str__(self):
+        return f"{self.user.username} - {'Verified' if self.is_verified else 'Pending'}"
+    
+    def generate_code(self):
+        """Generate kode verifikasi 6 digit"""
+        self.verification_code = ''.join([str(secrets.randbelow(10)) for _ in range(6)])
+        self.save()
+        return self.verification_code
+    
+    def is_expired(self):
+        """Cek apakah kode sudah expired (24 jam)"""
+        expiry_time = self.created_at + timedelta(hours=24)
+        return timezone.now() > expiry_time
+    
+    def verify(self, code):
+        """Verifikasi kode"""
+        if self.is_expired():
+            return False, "Kode verifikasi sudah kadaluarsa. Silakan minta kode baru."
+        
+        if self.verification_code == code:
+            self.is_verified = True
+            self.verified_at = timezone.now()
+            self.user.is_active = True
+            self.user.save()
+            self.save()
+            return True, "Email berhasil diverifikasi!"
+        
+        return False, "Kode verifikasi salah!"
 
 
 # ==================== USER PROFILE MODEL ====================

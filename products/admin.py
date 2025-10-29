@@ -1,16 +1,27 @@
 from django.contrib import admin
-from .models import ProductReview
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User, Group
 from django.utils.html import format_html
 from django import forms
-from .models import (
-    Category, Product, ProductImage, UserProfile, ShippingAddress,
-    Cart, CartItem, Order, OrderItem, ContactMessage,
-    AdminUser, CustomerUser
-)
 from unfold.admin import ModelAdmin as UnfoldModelAdmin
 
+# ✅ Import semua model sekaligus
+from .models import (
+    Category, 
+    Product, 
+    ProductImage, 
+    UserProfile, 
+    ShippingAddress,
+    Cart, 
+    CartItem, 
+    Order, 
+    OrderItem, 
+    ContactMessage,
+    ProductReview,
+    AdminUser, 
+    CustomerUser,
+    EmailVerification  # ← PASTIKAN INI ADA!
+)
 # ==================== UNREGISTER DEFAULT USER & GROUP ====================
 admin.site.unregister(User)
 admin.site.unregister(Group)
@@ -603,6 +614,29 @@ class ShippingAddressAdmin(UnfoldModelAdmin):
         }),
     )
     readonly_fields = ['created_at']
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('user')
+    
+    # ==================== EMAIL VERIFICATION ADMIN (TAMBAHAN BARU) ====================
+
+@admin.register(EmailVerification)
+class EmailVerificationAdmin(UnfoldModelAdmin):
+    list_display = ['user', 'verification_code', 'is_verified', 'created_at', 'verified_at']
+    list_filter = ['is_verified', 'created_at']
+    search_fields = ['user__username', 'user__email', 'verification_code']
+    readonly_fields = ['created_at', 'verified_at']
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('Informasi User', {
+            'fields': ('user',)
+        }),
+        ('Verifikasi', {
+            'fields': ('verification_code', 'is_verified', 'created_at', 'verified_at')
+        }),
+    )
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
