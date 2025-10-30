@@ -50,6 +50,9 @@
             <div class="form-group">
                 <label for="password1">Password *</label>
                 <input type="password" id="password1" name="password1" placeholder="Minimal 8 karakter" required>
+                <div class="password-requirements">
+                    <small>Password harus mengandung kombinasi huruf dan angka (minimal 8 karakter)</small>
+                </div>
                 <div class="password-strength">
                     <div class="strength-bar">
                         <div class="strength-bar-fill" id="strengthBar"></div>
@@ -122,6 +125,16 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
     if (password1.length < 8) {
         e.preventDefault();
         alert('Password harus minimal 8 karakter!');
+        return false;
+    }
+    
+    // Validasi kombinasi huruf dan angka
+    const hasLetter = /[a-zA-Z]/.test(password1);
+    const hasNumber = /[0-9]/.test(password1);
+    
+    if (!hasLetter || !hasNumber) {
+        e.preventDefault();
+        alert('Password harus mengandung kombinasi huruf dan angka!');
         return false;
     }
     

@@ -113,6 +113,22 @@ h1, h2, h3, h4, h5, h6 {
     gap: 15px;
 }
 
+/* Password Requirements Styling */
+.password-requirements {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background-color: #f0f7ff;
+    border-left: 3px solid #4285f4;
+    border-radius: 4px;
+}
+
+.password-requirements small {
+    color: #1967d2;
+    font-size: 12px;
+    line-height: 1.5;
+    display: block;
+}
+
 .terms-agreement {
     display: flex;
     align-items: flex-start;
@@ -159,7 +175,7 @@ h1, h2, h3, h4, h5, h6 {
 .btn-register:hover {
     background: #3367d6;
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(196, 154, 59, 0.3);
+    box-shadow: 0 5px 15px rgba(66, 133, 244, 0.3);
 }
 
 .btn-register:disabled {
@@ -228,6 +244,7 @@ h1, h2, h3, h4, h5, h6 {
     text-align: center;
     color: #666;
     font-size: 14px;
+    margin-top: 20px;
 }
 
 .login-link a {
