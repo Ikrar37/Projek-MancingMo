@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load humanize %}
+{% load currency_filters %}
 
 {% block title %}Keranjang - MancingMo{% endblock %}
 
@@ -26,7 +26,9 @@
     <div class="cart-table">
         <!-- Table Header -->
         <div class="table-header">
-            <div></div>
+            <div>
+                <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this)">
+            </div>
             <div>Produk</div>
             <div>Harga</div>
             <div>Kuantitas</div>
@@ -36,9 +38,14 @@
         <!-- Cart Items -->
         {% for item in cart_items %}
         <div class="cart-item">
-            <!-- Checkbox (optional) -->
+            <!-- Checkbox -->
             <div>
-                <input type="checkbox" class="item-checkbox" data-item-id="{{ item.id }}">
+                <input type="checkbox" class="item-checkbox" 
+                       data-item-id="{{ item.id }}" 
+                       data-price="{{ item.product.price|floatformat:0 }}"
+                       data-quantity="{{ item.quantity }}"
+                       data-subtotal="{{ item.get_subtotal|floatformat:0 }}"
+                       onchange="updateCartSummary()">
             </div>
 
             <!-- Product Details -->
@@ -69,7 +76,7 @@
 
             <!-- Price -->
             <div class="item-price">
-                Rp {{ item.product.price|floatformat:0|intcomma }}
+                Rp {{ item.product.price|rupiah }}
             </div>
 
             <!-- Quantity -->
@@ -81,7 +88,7 @@
 
             <!-- Total -->
             <div class="item-total" id="subtotal-{{ item.id }}">
-                Rp {{ item.get_subtotal|floatformat:0|intcomma }}
+                Rp {{ item.get_subtotal|rupiah }}
             </div>
         </div>
         {% endfor %}
@@ -91,16 +98,13 @@
     <div class="cart-summary">
         <div class="summary-row">
             <span>Subtotal</span>
-            <span id="cart-subtotal">Rp {{ cart.get_total|floatformat:0|intcomma }}</span>
+            <span id="cart-subtotal">Rp 0</span>
         </div>
         <div class="summary-row total">
             <span>Total</span>
-            <span id="cart-total">Rp {{ cart.get_total|floatformat:0|intcomma }}</span>
+            <span id="cart-total">Rp 0</span>
         </div>
-        <form method="post" action="{% url 'checkout' %}">
-            {% csrf_token %}
-            <button type="submit" class="btn-checkout">Checkout</button>
-        </form>
+        <button type="button" class="btn-checkout" id="checkout-btn" onclick="proceedToCheckout()" disabled>Checkout</button>
         <a href="{% url 'shop' %}" class="link-continue">Lanjut Belanja</a>
     </div>
 
@@ -120,9 +124,109 @@
 
 {% block extra_js %}
 <script>
-// Function to format number to Rupiah
+// Function to format number to Rupiah with dot separator
 function formatRupiah(number) {
     return 'Rp ' + Math.floor(number).toLocaleString('id-ID');
+}
+
+// Function to update cart summary based on checked items
+function updateCartSummary() {
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    let total = 0;
+    let hasChecked = false;
+    
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            hasChecked = true;
+            // Parse subtotal as number and handle any formatting
+            const subtotalStr = checkbox.dataset.subtotal.replace(/\./g, '').replace(/,/g, '');
+            const subtotal = parseFloat(subtotalStr);
+            total += subtotal;
+        }
+    });
+    
+    // Update summary display
+    document.getElementById('cart-subtotal').textContent = formatRupiah(total);
+    document.getElementById('cart-total').textContent = formatRupiah(total);
+    
+    // Enable/disable checkout button
+    const checkoutBtn = document.getElementById('checkout-btn');
+    if (hasChecked) {
+        checkoutBtn.disabled = false;
+        checkoutBtn.style.opacity = '1';
+        checkoutBtn.style.cursor = 'pointer';
+    } else {
+        checkoutBtn.disabled = true;
+        checkoutBtn.style.opacity = '0.5';
+        checkoutBtn.style.cursor = 'not-allowed';
+    }
+    
+    // Update "select all" checkbox state
+    updateSelectAllCheckbox();
+}
+
+// Function to toggle select all
+function toggleSelectAll(selectAllCheckbox) {
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    updateCartSummary();
+}
+
+// Function to update "select all" checkbox state
+function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    const checkedCount = document.querySelectorAll('.item-checkbox:checked').length;
+    
+    if (checkedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    } else if (checkedCount === checkboxes.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+    } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+    }
+}
+
+// Function to proceed to checkout with selected items
+function proceedToCheckout() {
+    const checkboxes = document.querySelectorAll('.item-checkbox:checked');
+    
+    if (checkboxes.length === 0) {
+        alert('Pilih minimal 1 produk untuk checkout!');
+        return;
+    }
+    
+    // Collect selected item IDs
+    const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.itemId);
+    
+    // Create form and submit
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "checkout" %}';
+    
+    // Add CSRF token
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = getCookie('csrftoken');
+    form.appendChild(csrfInput);
+    
+    // Add selected item IDs
+    selectedIds.forEach(id => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'selected_items';
+        input.value = id;
+        form.appendChild(input);
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
 }
 
 // Function to update quantity via AJAX
@@ -141,12 +245,18 @@ function updateQuantity(itemId, action) {
             // Update quantity display
             document.getElementById(`qty-${itemId}`).textContent = data.quantity;
             
-            // Update subtotal
+            // Update subtotal display
             document.getElementById(`subtotal-${itemId}`).textContent = formatRupiah(data.subtotal);
             
-            // Update cart total
-            document.getElementById('cart-subtotal').textContent = formatRupiah(data.cart_total);
-            document.getElementById('cart-total').textContent = formatRupiah(data.cart_total);
+            // Update checkbox data
+            const checkbox = document.querySelector(`.item-checkbox[data-item-id="${itemId}"]`);
+            if (checkbox) {
+                checkbox.dataset.quantity = data.quantity;
+                checkbox.dataset.subtotal = data.subtotal;
+            }
+            
+            // Recalculate cart summary if item is checked
+            updateCartSummary();
         } else {
             alert(data.message);
         }
@@ -172,5 +282,10 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateCartSummary();
+});
 </script>
 {% endblock %}

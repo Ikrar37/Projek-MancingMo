@@ -20,7 +20,7 @@ from .models import (
     ProductReview,
     AdminUser, 
     CustomerUser,
-    EmailVerification  # ← PASTIKAN INI ADA!
+    EmailVerification 
 )
 # ==================== UNREGISTER DEFAULT USER & GROUP ====================
 admin.site.unregister(User)
@@ -301,7 +301,6 @@ class ProductAdmin(UnfoldModelAdmin):
     image_thumbnail.short_description = 'Gambar'
     
     def price_display(self, obj):
-        # ✅ PERBAIKAN: Menggunakan format() method tanpa 'f' format code
         return "Rp {:,.0f}".format(obj.price)
     price_display.short_description = 'Harga'
     price_display.admin_order_field = 'price'
@@ -472,7 +471,6 @@ class OrderAdmin(UnfoldModelAdmin):
     readonly_fields = ['order_number', 'created_at', 'updated_at']
     
     def total_display(self, obj):
-        # ✅ PERBAIKAN: Menggunakan format() method tanpa 'f' format code
         return "Rp {:,.0f}".format(obj.total)
     total_display.short_description = 'Total'
     total_display.admin_order_field = 'total'

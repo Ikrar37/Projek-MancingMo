@@ -294,7 +294,7 @@
 .reset-filter {
     display: inline-block;
     padding: 12px 30px;
-    background: #c49a3b;
+    background: #4285f4;
     color: white;
     text-decoration: none;
     border-radius: 5px;
@@ -303,7 +303,7 @@
 }
 
 .reset-filter:hover {
-    background: #b38930;
+    background: #3367d6;
 }
 
 /* Pagination */

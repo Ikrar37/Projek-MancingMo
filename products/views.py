@@ -710,7 +710,7 @@ def remove_from_cart(request, item_id):
 
 @login_required
 def checkout(request):
-    """View untuk halaman checkout - DENGAN DROPDOWN ALAMAT"""
+    """View untuk halaman checkout - DENGAN DROPDOWN ALAMAT DAN SELECTED ITEMS"""
     cart = get_object_or_404(Cart, user=request.user)
     
     # Validasi cart tidak kosong
@@ -728,13 +728,27 @@ def checkout(request):
     shipping_cost = Decimal('10000')
     
     if request.method == 'POST':
+        # Ambil selected items dari POST data
+        selected_item_ids = request.POST.getlist('selected_items')
+        
+        if not selected_item_ids:
+            messages.error(request, 'Pilih minimal 1 produk untuk checkout!')
+            return redirect('cart')
+        
+        # Filter cart items berdasarkan selected items
+        selected_cart_items = cart.items.filter(id__in=selected_item_ids)
+        
+        if not selected_cart_items.exists():
+            messages.error(request, 'Produk yang dipilih tidak valid!')
+            return redirect('cart')
+        
         # Ambil data dari form
         full_name = request.POST.get('full_name')
         phone = request.POST.get('phone')
         address = request.POST.get('address')
         province = request.POST.get('province', '')
         city = request.POST.get('city', '')
-        district = request.POST.get('district', '')  # ✅ FIELD BARU
+        district = request.POST.get('district', '')
         postal_code = request.POST.get('postal_code', '')
         payment_method = request.POST.get('payment_method')
         save_address = request.POST.get('save_address')
@@ -742,10 +756,12 @@ def checkout(request):
         # Validasi data (province, district, postal_code opsional)
         if not all([full_name, phone, address, city, payment_method]):
             messages.error(request, 'Mohon lengkapi semua data wajib!')
+            # Store selected items in session untuk di-load ulang di halaman checkout
+            request.session['selected_items'] = selected_item_ids
             return redirect('checkout')
         
-        # Hitung total
-        subtotal = cart.get_total()
+        # Hitung total dari selected items saja
+        subtotal = sum(item.get_subtotal() for item in selected_cart_items)
         total = subtotal + shipping_cost
         
         # Buat order
@@ -756,7 +772,7 @@ def checkout(request):
             shipping_address=address,
             shipping_province=province,
             shipping_city=city,
-            shipping_district=district,  # ✅ FIELD BARU
+            shipping_district=district,
             shipping_postal_code=postal_code,
             payment_method=payment_method,
             subtotal=subtotal,
@@ -765,8 +781,8 @@ def checkout(request):
             status='pending'
         )
         
-        # Buat order items dari cart items
-        for cart_item in cart.items.all():
+        # Buat order items dari selected cart items
+        for cart_item in selected_cart_items:
             OrderItem.objects.create(
                 order=order,
                 product=cart_item.product,
@@ -789,25 +805,43 @@ def checkout(request):
                 address=address,
                 province=province,
                 city=city,
-                district=district,  # ✅ FIELD BARU
+                district=district,
                 postal_code=postal_code,
                 is_default=True
             )
         
-        # Hapus cart items
-        cart.items.all().delete()
+        # Hapus hanya selected cart items
+        selected_cart_items.delete()
+        
+        # Clear session
+        if 'selected_items' in request.session:
+            del request.session['selected_items']
         
         # Redirect ke halaman order success
         messages.success(request, f'Pesanan berhasil dibuat! Nomor Order: {order.order_number}')
         return redirect('order_success', order_id=order.id)
     
+    # GET request - tampilkan halaman checkout
+    # Ambil selected items dari session (jika ada dari redirect)
+    selected_item_ids = request.session.get('selected_items', [])
+    
+    if selected_item_ids:
+        # Jika ada selected items dari redirect, filter cart items
+        cart_items = cart.items.filter(id__in=selected_item_ids)
+        cart_total = sum(item.get_subtotal() for item in cart_items)
+    else:
+        # Jika tidak ada, tampilkan semua items
+        cart_items = cart.items.all()
+        cart_total = cart.get_total()
+    
     context = {
         'cart': cart,
-        'cart_items': cart.items.all(),
+        'cart_items': cart_items,
         'user_profile': user_profile,
         'default_address': default_address,
         'shipping_cost': shipping_cost,
-        'total': cart.get_total() + shipping_cost,
+        'total': cart_total + shipping_cost,
+        'selected_item_ids': selected_item_ids,
     }
     
     return render(request, 'checkout.html', context)
