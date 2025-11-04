@@ -706,6 +706,8 @@ def remove_from_cart(request, item_id):
     return redirect('cart')
 
 
+
+
 # ==================== CHECKOUT VIEWS ====================
 
 @login_required

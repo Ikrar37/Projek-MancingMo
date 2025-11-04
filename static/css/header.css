@@ -82,6 +82,36 @@ nav {
     color: #4285f4;
 }
 
+/* Cart Icon with Badge */
+.cart-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.cart-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: transparent;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 2px solid white;
+    z-index: 10;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     nav {
@@ -104,27 +134,29 @@ nav {
 .user-btn {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 16px;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
     background: transparent;
+    border: none;
     cursor: pointer;
     transition: all 0.3s ease;
     color: #333;
-    font-family: 'Poppins', sans-serif;
-    font-weight: 500;
+}
+
+.user-btn:hover {
+    color: #4285f4;
+    transform: scale(1.1);
 }
 
 .user-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
 }
 
 .user-name {
-    font-size: 14px;
-    max-width: 100px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none;
 }
 
 /* Dropdown Menu */
@@ -159,44 +191,12 @@ nav {
     text-decoration: none;
     transition: all 0.2s ease;
     font-size: 14px;
-}
-
-/* Dropdown Item (existing) */
-.dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
-    color: #333;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    font-size: 14px;
     background: none;
     border: none;
     width: 100%;
     text-align: left;
     cursor: pointer;
     font-family: 'Poppins', sans-serif;
-}
-
-.dropdown-item:hover {
-    background: #f5f5f5;
-    color: #C49A3B;
-}
-
-.dropdown-item svg {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-}
-
-.dropdown-item.logout {
-    color: #e74c3c;
-}
-
-.dropdown-item.logout:hover {
-    background: #fee;
-    color: #c0392b;
 }
 
 .dropdown-item:hover {
@@ -248,8 +248,7 @@ nav {
     }
     
     .user-btn {
-        padding: 8px;
-        border-radius: 50%;
+        padding: 0;
         width: 40px;
         height: 40px;
         justify-content: center;

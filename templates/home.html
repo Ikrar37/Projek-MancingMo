@@ -46,13 +46,17 @@
 <!-- Inspiration Section -->
 <section class="inspiration">
     <div class="inspiration-content">
-        <h2 class="inspiration-title">Inspirasi Alat Pancing Terbaik</h2>
-        <p class="inspiration-description">
-            Temukan berbagai perlengkapan pancing dengan desain modern dan performa tinggi yang akan membuat pengalaman memancing anda semakin menyenangkan.
-        </p>
-        <button class="btn-secondary" onclick="window.location.href='{% url 'shop' %}'">Explore More</button>
+        <div class="inspiration-text">
+            <h2 class="inspiration-title">Inspirasi Alat Pancing Terbaik</h2>
+            <p class="inspiration-description">
+                Temukan berbagai perlengkapan pancing dengan desain modern dan performa tinggi yang akan membuat pengalaman memancing anda semakin menyenangkan.
+            </p>
+            <button class="btn-secondary" onclick="window.location.href='{% url 'shop' %}'">Explore More</button>
+        </div>
     </div>
-    <div class="inspiration-image inspiration-image-large" style="background-image: url('{% static 'image/inspirasi1.png' %}');"></div>
-    <div class="inspiration-image inspiration-image-small" style="background-image: url('{% static 'image/inspirasi2.png' %}');"></div>
+    <div class="inspiration-images">
+        <div class="inspiration-image inspiration-image-large" style="background-image: url('{% static 'image/inspirasi1.png' %}');"></div>
+        <div class="inspiration-image inspiration-image-small" style="background-image: url('{% static 'image/inspirasi2.png' %}');"></div>
+    </div>
 </section>
 {% endblock %}
