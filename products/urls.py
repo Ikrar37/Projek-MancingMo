@@ -28,6 +28,7 @@ urlpatterns = [
     path('cart/add/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
     path('cart/update/<int:item_id>/', views.update_cart_item, name='update_cart_item'),
     path('cart/remove/<int:item_id>/', views.remove_from_cart, name='remove_from_cart'),
+    path('cart/delete-selected/', views.delete_selected_items, name='delete_selected_items'),
     path('api/cart/count/', views.get_cart_count, name='get_cart_count'),
     
     # Checkout

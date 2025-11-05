@@ -22,6 +22,16 @@
 <!-- Cart Container -->
 <section class="cart-container">
     {% if cart_items %}
+    <!-- Action Buttons -->
+    <div class="cart-actions">
+        <button type="button" class="btn-delete-selected" id="delete-selected-btn" onclick="deleteSelectedItems()" disabled>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+            Hapus Dipilih
+        </button>
+    </div>
+
     <!-- Cart Table -->
     <div class="cart-table">
         <!-- Table Header -->
@@ -37,7 +47,7 @@
 
         <!-- Cart Items -->
         {% for item in cart_items %}
-        <div class="cart-item">
+        <div class="cart-item" data-item-id="{{ item.id }}">
             <!-- Checkbox -->
             <div>
                 <input type="checkbox" class="item-checkbox" 
@@ -161,6 +171,18 @@ function updateCartSummary() {
         checkoutBtn.style.cursor = 'not-allowed';
     }
     
+    // Enable/disable delete selected button
+    const deleteBtn = document.getElementById('delete-selected-btn');
+    if (hasChecked) {
+        deleteBtn.disabled = false;
+        deleteBtn.style.opacity = '1';
+        deleteBtn.style.cursor = 'pointer';
+    } else {
+        deleteBtn.disabled = true;
+        deleteBtn.style.opacity = '0.5';
+        deleteBtn.style.cursor = 'not-allowed';
+    }
+    
     // Update "select all" checkbox state
     updateSelectAllCheckbox();
 }
@@ -190,6 +212,65 @@ function updateSelectAllCheckbox() {
         selectAllCheckbox.checked = false;
         selectAllCheckbox.indeterminate = true;
     }
+}
+
+// Function to delete selected items
+function deleteSelectedItems() {
+    const checkboxes = document.querySelectorAll('.item-checkbox:checked');
+    
+    if (checkboxes.length === 0) {
+        alert('Pilih minimal 1 produk untuk dihapus!');
+        return;
+    }
+    
+    const itemCount = checkboxes.length;
+    const confirmation = confirm(`Hapus ${itemCount} produk yang dipilih dari keranjang?`);
+    
+    if (!confirmation) {
+        return;
+    }
+    
+    // Collect selected item IDs
+    const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.itemId);
+    
+    // Send AJAX request to delete items
+    fetch('{% url "delete_selected_items" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ item_ids: selectedIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Remove items from DOM
+            selectedIds.forEach(id => {
+                const itemElement = document.querySelector(`.cart-item[data-item-id="${id}"]`);
+                if (itemElement) {
+                    itemElement.remove();
+                }
+            });
+            
+            // Check if cart is empty
+            const remainingItems = document.querySelectorAll('.cart-item');
+            if (remainingItems.length === 0) {
+                // Reload page to show empty cart message
+                location.reload();
+            } else {
+                // Update summary
+                updateCartSummary();
+                alert(data.message);
+            }
+        } else {
+            alert(data.message || 'Terjadi kesalahan saat menghapus produk.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan. Silakan refresh halaman.');
+    });
 }
 
 // Function to proceed to checkout with selected items

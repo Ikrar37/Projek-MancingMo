@@ -705,6 +705,54 @@ def remove_from_cart(request, item_id):
     messages.success(request, f'{product_name} berhasil dihapus dari keranjang!')
     return redirect('cart')
 
+# Tambahkan fungsi ini di views.py setelah fungsi remove_from_cart()
+# Letakkan di sekitar baris 689 (setelah fungsi remove_from_cart)
+
+@login_required
+@require_POST
+def delete_selected_items(request):
+    """View untuk menghapus multiple items dari keranjang (AJAX)"""
+    import json
+    
+    try:
+        data = json.loads(request.body)
+        item_ids = data.get('item_ids', [])
+        
+        if not item_ids:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Tidak ada produk yang dipilih!'
+            })
+        
+        # Hapus items yang dipilih
+        deleted_count = CartItem.objects.filter(
+            id__in=item_ids,
+            cart__user=request.user
+        ).delete()[0]
+        
+        if deleted_count > 0:
+            return JsonResponse({
+                'status': 'success',
+                'message': f'{deleted_count} produk berhasil dihapus dari keranjang!',
+                'deleted_count': deleted_count
+            })
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Produk tidak ditemukan atau sudah terhapus!'
+            })
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Format data tidak valid!'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Terjadi kesalahan: {str(e)}'
+        })
+
 
 
 

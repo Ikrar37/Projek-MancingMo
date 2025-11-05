@@ -49,6 +49,45 @@ h1, h2, h3, h4, h5, h6 {
     padding: 0 40px;
 }
 
+/* Action Buttons */
+.cart-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+.btn-delete-selected {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #e53935;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-delete-selected:hover:not(:disabled) {
+    background: #c62828;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(229, 57, 53, 0.3);
+}
+
+.btn-delete-selected:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #ffcdd2;
+}
+
+.btn-delete-selected svg {
+    width: 18px;
+    height: 18px;
+}
+
 .cart-table {
     background: white;
     border-radius: 10px;
@@ -86,9 +125,6 @@ h1, h2, h3, h4, h5, h6 {
     cursor: pointer;
     accent-color: #4285f4;
 }
-
-
-
 
 /* Custom checkbox styling untuk better appearance */
 input[type="checkbox"] {
@@ -309,6 +345,16 @@ input[type="checkbox"]:hover {
 @media (max-width: 768px) {
     .cart-container {
         padding: 0 20px;
+    }
+
+    .cart-actions {
+        justify-content: center;
+        margin-bottom: 15px;
+    }
+
+    .btn-delete-selected {
+        font-size: 13px;
+        padding: 8px 16px;
     }
 
     .table-header {
