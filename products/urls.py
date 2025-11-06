@@ -15,6 +15,9 @@ urlpatterns = [
     path('resend-verification/<str:username>/', views.resend_verification_code, name='resend_verification_code'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+
+    path('midtrans-payment/<int:order_id>/', views.midtrans_payment, name='midtrans_payment'),
+    path('midtrans-notification/', views.midtrans_notification, name='midtrans_notification'),
     
     # Profile
     path('profile/', views.profile, name='profile'),

@@ -296,6 +296,7 @@ class Order(models.Model):
     ]
     
     PAYMENT_CHOICES = [
+        ('midtrans', 'Midtrans Payment Gateway'),
         ('bank_transfer', 'Transfer Bank'),
         ('qris', 'QRIS'),
         ('cod', 'Cash on Delivery'),
@@ -303,6 +304,11 @@ class Order(models.Model):
     
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', verbose_name="Pengguna")
     order_number = models.CharField(max_length=50, unique=True, verbose_name="Nomor Pesanan")
+    midtrans_order_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="Midtrans Order ID")
+    midtrans_transaction_id = models.CharField(max_length=100, blank=True, null=True, verbose_name="Midtrans Transaction ID")
+    midtrans_transaction_status = models.CharField(max_length=50, blank=True, null=True, verbose_name="Status Transaksi Midtrans")
+    midtrans_payment_type = models.CharField(max_length=50, blank=True, null=True, verbose_name="Tipe Pembayaran Midtrans")
+    midtrans_snap_token = models.CharField(max_length=255, blank=True, null=True, verbose_name="Snap Token")
     shipping_name = models.CharField(max_length=200, verbose_name="Nama Penerima")
     shipping_phone = models.CharField(max_length=20, verbose_name="Telepon Penerima")
     shipping_address = models.TextField(verbose_name="Alamat Pengiriman")

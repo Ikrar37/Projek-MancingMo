@@ -256,6 +256,19 @@ def patched_open(self):
 import smtplib
 django.core.mail.backends.smtp.EmailBackend.open = patched_open
 
+
+# ==================== MIDTRANS CONFIGURATION ====================
+# 🎣 KONFIGURASI MIDTRANS SANDBOX
+# Ganti dengan Server Key dan Client Key dari dashboard Midtrans Sandbox
+# https://dashboard.sandbox.midtrans.com/ → Settings → Access Keys
+
+MIDTRANS_SERVER_KEY = 'Mid-server-2rYcSMldILPSFegixYRC-DHu'  # ← GANTI DENGAN SERVER KEY ANDA
+MIDTRANS_CLIENT_KEY = 'Mid-client-AM4fW3gBxuA2UP98'  # ← GANTI DENGAN CLIENT KEY ANDA
+MIDTRANS_IS_PRODUCTION = False  # False = Sandbox Mode, True = Production Mode
+MIDTRANS_IS_SANITIZED = True  # Sanitize input untuk keamanan
+MIDTRANS_IS_3DS = True  # Enable 3D Secure untuk kartu kredit
+
+
 # ==================== DJANGO UNFOLD CONFIGURATION ====================
 # ✅ KONFIGURASI UNFOLD ADMIN THEME
 

@@ -760,7 +760,7 @@ def delete_selected_items(request):
 
 @login_required
 def checkout(request):
-    """View untuk halaman checkout - DENGAN SELECTED ITEMS DARI CART"""
+    """View untuk halaman checkout - DENGAN MIDTRANS INTEGRATION"""
     cart = get_object_or_404(Cart, user=request.user)
     
     # Validasi cart tidak kosong
@@ -807,7 +807,6 @@ def checkout(request):
         # Validasi data wajib
         if not all([full_name, phone, address, city, payment_method]):
             messages.error(request, 'Mohon lengkapi semua data wajib!')
-            # Store selected items in session untuk di-load ulang di halaman checkout
             request.session['selected_items'] = selected_item_ids
             return redirect('checkout')
         
@@ -857,10 +856,7 @@ def checkout(request):
             
             # Simpan alamat jika diminta
             if save_address:
-                # Set alamat lain menjadi non-default
                 ShippingAddress.objects.filter(user=request.user).update(is_default=False)
-                
-                # Buat alamat baru sebagai default
                 ShippingAddress.objects.create(
                     user=request.user,
                     full_name=full_name,
@@ -873,7 +869,36 @@ def checkout(request):
                     is_default=True
                 )
             
-            # Hapus hanya selected cart items
+            # ✅ INTEGRASI MIDTRANS - Jika payment method adalah midtrans
+            if payment_method == 'midtrans':
+                from .midtrans_utils import MidtransPayment
+                
+                midtrans = MidtransPayment()
+                result = midtrans.create_transaction(order)
+                
+                if result['success']:
+                    # Simpan snap token ke order
+                    order.midtrans_snap_token = result['snap_token']
+                    order.midtrans_order_id = order.order_number
+                    order.save()
+                    
+                    # Hapus selected cart items
+                    selected_cart_items.delete()
+                    
+                    # Clear session
+                    if 'selected_items' in request.session:
+                        del request.session['selected_items']
+                    
+                    # Redirect ke payment page dengan snap token
+                    return redirect('midtrans_payment', order_id=order.id)
+                else:
+                    # Jika gagal membuat transaksi Midtrans
+                    order.delete()
+                    messages.error(request, f'Gagal membuat transaksi: {result["error"]}')
+                    request.session['selected_items'] = selected_item_ids
+                    return redirect('checkout')
+            
+            # Hapus selected cart items (untuk payment method lain)
             selected_cart_items.delete()
             
             # Clear session
@@ -890,22 +915,18 @@ def checkout(request):
             return redirect('checkout')
     
     # GET request - tampilkan halaman checkout
-    # Ambil selected items dari session atau POST
     selected_item_ids = request.session.get('selected_items', request.POST.getlist('selected_items'))
     
     if selected_item_ids:
-        # Jika ada selected items, filter cart items
         cart_items = cart.items.filter(id__in=selected_item_ids)
         if not cart_items.exists():
             messages.error(request, 'Produk yang dipilih tidak valid!')
             return redirect('cart')
         cart_total = sum(item.get_subtotal() for item in cart_items)
     else:
-        # Jika tidak ada selected items, redirect ke cart
         messages.error(request, 'Pilih minimal 1 produk untuk checkout!')
         return redirect('cart')
     
-    # Clear session setelah digunakan (untuk GET request)
     if 'selected_items' in request.session and request.method == 'GET':
         del request.session['selected_items']
     
@@ -932,6 +953,80 @@ def order_success(request, order_id):
     
     return render(request, 'order_success.html', context)
 
+@login_required
+def midtrans_payment(request, order_id):
+    """View untuk halaman pembayaran Midtrans"""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    # Pastikan order menggunakan Midtrans dan punya snap token
+    if order.payment_method != 'midtrans' or not order.midtrans_snap_token:
+        messages.error(request, 'Order ini tidak menggunakan pembayaran Midtrans!')
+        return redirect('order_detail', order_id=order.id)
+    
+    context = {
+        'order': order,
+        'snap_token': order.midtrans_snap_token,
+        'client_key': settings.MIDTRANS_CLIENT_KEY,
+        'is_production': settings.MIDTRANS_IS_PRODUCTION,
+    }
+    
+    return render(request, 'midtrans_payment.html', context)
+
+
+@require_POST
+def midtrans_notification(request):
+    """
+    Webhook handler untuk notifikasi dari Midtrans
+    Midtrans akan mengirim POST request ke endpoint ini setiap ada perubahan status transaksi
+    """
+    import json
+    from django.views.decorators.csrf import csrf_exempt
+    from django.utils import timezone
+    
+    try:
+        # Parse notification data
+        notification = json.loads(request.body.decode('utf-8'))
+        
+        order_id = notification.get('order_id')
+        transaction_status = notification.get('transaction_status')
+        fraud_status = notification.get('fraud_status')
+        transaction_id = notification.get('transaction_id')
+        payment_type = notification.get('payment_type')
+        
+        # Cari order berdasarkan order_id
+        try:
+            order = Order.objects.get(order_number=order_id)
+        except Order.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Order not found'}, status=404)
+        
+        # Update order dengan data dari Midtrans
+        order.midtrans_transaction_id = transaction_id
+        order.midtrans_transaction_status = transaction_status
+        order.midtrans_payment_type = payment_type
+        
+        # Handle transaction status
+        if transaction_status == 'capture':
+            if fraud_status == 'accept':
+                order.status = 'paid'
+                order.paid_at = timezone.now()
+        elif transaction_status == 'settlement':
+            order.status = 'paid'
+            order.paid_at = timezone.now()
+        elif transaction_status == 'pending':
+            order.status = 'pending'
+        elif transaction_status in ['deny', 'expire', 'cancel']:
+            order.status = 'cancelled'
+            # Kembalikan stock jika dibatalkan
+            for item in order.items.all():
+                item.product.stock += item.quantity
+                item.product.save()
+        
+        order.save()
+        
+        return JsonResponse({'status': 'success'}, status=200)
+        
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 # ==================== AJAX HELPER ====================
 

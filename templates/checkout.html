@@ -137,12 +137,26 @@
                         <h3 class="payment-method-title">Pilih Metode Pembayaran</h3>
 
                         <div class="payment-options">
+                            <!-- ✅ OPSI MIDTRANS (BARU) -->
+                            <label class="payment-option">
+                                <input type="radio" name="payment_method" value="midtrans" required checked>
+                                <div class="payment-card">
+                                    <div class="payment-info">
+                                        <span class="payment-name">💳 Midtrans Payment Gateway</span>
+                                        <span class="payment-desc">Virtual Account, E-Wallet, Kartu Kredit, QRIS, dan lainnya</span>
+                                    </div>
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                </div>
+                            </label>
+
                             <label class="payment-option">
                                 <input type="radio" name="payment_method" value="bank_transfer" required>
                                 <div class="payment-card">
                                     <div class="payment-info">
-                                        <span class="payment-name">Transfer Bank</span>
-                                        <span class="payment-desc">BCA, BNI, Mandiri, BRI</span>
+                                        <span class="payment-name">Transfer Bank Manual</span>
+                                        <span class="payment-desc">BCA, BNI, Mandiri, BRI (Upload bukti transfer)</span>
                                     </div>
                                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -154,7 +168,7 @@
                                 <input type="radio" name="payment_method" value="qris" required>
                                 <div class="payment-card">
                                     <div class="payment-info">
-                                        <span class="payment-name">QRIS</span>
+                                        <span class="payment-name">QRIS Manual</span>
                                         <span class="payment-desc">Scan QR dengan aplikasi mobile banking</span>
                                     </div>
                                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
