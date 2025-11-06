@@ -37,6 +37,11 @@
                 <form method="POST" id="checkoutForm">
                     {% csrf_token %}
                     
+                    <!-- Hidden inputs untuk selected items -->
+                    {% for item in cart_items %}
+                    <input type="hidden" name="selected_items" value="{{ item.id }}">
+                    {% endfor %}
+                    
                     <!-- Info Pengiriman -->
                     <div class="checkout-section">
                         <h2 class="section-title">Info Pengiriman</h2>
