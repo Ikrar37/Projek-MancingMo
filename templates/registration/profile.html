@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load currency_filters %}
+{% load indonesian_date_filters %}
 
 {% block title %}Profile - MancingMo{% endblock %}
 
@@ -37,7 +38,7 @@
             <div class="profile-info">
                 <h1>{% if user.first_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}</h1>
                 <p>@{{ user.username }}</p>
-                <p class="member-since">Bergabung sejak {{ user.date_joined|date:"F Y" }}</p>
+                <p class="member-since">Bergabung sejak {{ user.date_joined|bulan_indonesia }}</p>
                 {% if profile.bio %}
                 <p class="profile-bio">{{ profile.bio }}</p>
                 {% endif %}
@@ -155,7 +156,7 @@
                     </div>
                     <div class="detail-value">
                         {% if profile.birth_date %}
-                            {{ profile.birth_date|date:"d F Y" }}
+                            {{ profile.birth_date|bulan_indonesia:"d F Y" }}
                         {% else %}
                             Belum diisi
                         {% endif %}

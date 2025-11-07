@@ -148,7 +148,7 @@
 
 /* Team Section */
 .team-section {
-    margin-top: 100px;
+    margin-top: 15px;
     padding: 80px 0;
     background: #f9f9f9;
     margin-left: -80px;
@@ -225,7 +225,7 @@
 
 /* CTA Section */
 .cta-section {
-    margin-top: 100px;
+    margin-top: 50px;
     text-align: center;
     padding: 60px;
     background: linear-gradient(135deg, #4285f4 0%, #4285f4 100%);

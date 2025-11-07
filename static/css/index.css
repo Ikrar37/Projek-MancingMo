@@ -58,13 +58,14 @@
 
 /* Products Section */
 .products {
-    padding: 80px 80px;
+    padding: 80px 80px 60px 80px; /* MENJADI INI */
     background: #f9f9f9;
 }
 
 .section-title {
     text-align: center;
     font-size: 36px;
+    margin-top: -30px;
     margin-bottom: 50px;
     color: #333;
 }
@@ -319,7 +320,7 @@
     }
     
     .products {
-        padding: 60px 20px;
+        padding: 60px 20px 40px 20px; /* MENJADI INI */
     }
     
     .product-grid {

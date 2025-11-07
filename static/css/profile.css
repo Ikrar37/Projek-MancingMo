@@ -94,6 +94,7 @@
 
 .profile-info {
     text-align: left;
+    padding-top: 15px;
 }
 
 .profile-info h1 {
@@ -428,6 +429,7 @@
     .profile-info {
         width: 100%;
         text-align: left;
+        padding-top: 10px;
     }
     
     .profile-info h1 {
