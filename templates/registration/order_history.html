@@ -7,6 +7,13 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/order_history.css' %}">
+<style>
+/* ✅ TAMBAHAN CSS untuk status expired */
+.status-badge.status-expired {
+    background: #dc3545 !important;
+    color: white !important;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -26,21 +33,30 @@
                         <p class="order-date">{{ order.created_at|date:"d F Y, H:i" }} WIB</p>
                     </div>
                     <div class="order-status">
+                        {% comment %}
+                        ✅ LOGIKA BARU: Cek apakah pending dan expired
+                        {% endcomment %}
+                        {% if order.status == 'pending' and order.midtrans_transaction_status in 'expire,cancel,deny' %}
+                        <span class="status-badge status-expired">
+                            PEMBAYARAN KADALUARSA
+                        </span>
+                        {% else %}
                         <span class="status-badge status-{{ order.status }}">
                             {% if order.status == 'pending' %}
-                                Menunggu Pembayaran
+                                MENUNGGU PEMBAYARAN
                             {% elif order.status == 'paid' %}
-                                Sudah Dibayar
+                                SUDAH DIBAYAR
                             {% elif order.status == 'processing' %}
-                                Sedang Diproses
+                                SEDANG DIPROSES
                             {% elif order.status == 'shipped' %}
-                                Dikirim
+                                DIKIRIM
                             {% elif order.status == 'delivered' %}
-                                Terkirim
+                                TERKIRIM
                             {% elif order.status == 'cancelled' %}
-                                Dibatalkan
+                                DIBATALKAN
                             {% endif %}
                         </span>
+                        {% endif %}
                     </div>
                 </div>
 

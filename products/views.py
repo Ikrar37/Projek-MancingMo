@@ -11,6 +11,7 @@ from decimal import Decimal
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.mail import send_mail
 from django.conf import settings
+from django.utils import timezone
 
 from .models import (
     Product, Category, Cart, CartItem, Order, OrderItem, 
@@ -560,8 +561,36 @@ def change_password(request):
 
 @login_required
 def order_history(request):
-    """View untuk halaman riwayat pesanan"""
+    """View untuk halaman riwayat pesanan dengan pengecekan status Midtrans real-time"""
     orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    
+    # ✅ CEK STATUS MIDTRANS UNTUK SEMUA ORDER PENDING
+    from .midtrans_utils import MidtransPayment
+    midtrans = MidtransPayment()
+    
+    for order in orders:
+        if order.status == 'pending' and order.payment_method == 'midtrans' and order.midtrans_order_id:
+            try:
+                status_result = midtrans.check_transaction_status(order.midtrans_order_id)
+                
+                if status_result['success']:
+                    transaction_status = status_result['data'].get('transaction_status')
+                    fraud_status = status_result['data'].get('fraud_status')
+                    
+                    if transaction_status == 'capture':
+                        if fraud_status == 'accept':
+                            order.status = 'paid'
+                            order.paid_at = timezone.now()
+                    elif transaction_status == 'settlement':
+                        order.status = 'paid'
+                        order.paid_at = timezone.now()
+                    elif transaction_status in ['deny', 'expire', 'cancel']:
+                        order.midtrans_transaction_status = transaction_status
+                    
+                    order.save()
+                    
+            except Exception as e:
+                print(f"Error checking Midtrans status for order {order.id}: {str(e)}")
     
     # Pagination
     paginator = Paginator(orders, 10)
@@ -577,8 +606,39 @@ def order_history(request):
 
 @login_required
 def order_detail(request, order_id):
-    """View untuk detail pesanan"""
+    """View untuk detail pesanan dengan pengecekan status Midtrans real-time"""
     order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    # ✅ CEK STATUS TRANSAKSI MIDTRANS JIKA ORDER MASIH PENDING
+    if order.status == 'pending' and order.payment_method == 'midtrans' and order.midtrans_order_id:
+        from .midtrans_utils import MidtransPayment
+        
+        try:
+            midtrans = MidtransPayment()
+            status_result = midtrans.check_transaction_status(order.midtrans_order_id)
+            
+            if status_result['success']:
+                transaction_status = status_result['data'].get('transaction_status')
+                fraud_status = status_result['data'].get('fraud_status')
+                
+                # Update status order berdasarkan response Midtrans
+                if transaction_status == 'capture':
+                    if fraud_status == 'accept':
+                        order.status = 'paid'
+                        order.paid_at = timezone.now()
+                elif transaction_status == 'settlement':
+                    order.status = 'paid'
+                    order.paid_at = timezone.now()
+                elif transaction_status in ['deny', 'expire', 'cancel']:
+                    # Update status transaksi ke expired/cancelled
+                    order.midtrans_transaction_status = transaction_status
+                
+                # Simpan perubahan
+                order.save()
+                
+        except Exception as e:
+            # Jika gagal cek status, lanjutkan saja tanpa error
+            print(f"Error checking Midtrans status: {str(e)}")
     
     context = {
         'order': order,
@@ -1066,6 +1126,76 @@ def continue_payment(request, order_id):
             
     except Exception as e:
         messages.error(request, f'Terjadi kesalahan: {str(e)}')
+        return redirect('order_detail', order_id=order.id)
+
+@login_required
+def retry_payment(request, order_id):
+    """View untuk membuat transaksi pembayaran baru jika yang lama expired"""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    # Validasi: hanya order dengan status pending yang bisa retry
+    if order.status != 'pending':
+        messages.error(request, 'Order ini tidak dapat diproses ulang!')
+        return redirect('order_detail', order_id=order.id)
+    
+    # Validasi: harus menggunakan metode pembayaran midtrans
+    if order.payment_method != 'midtrans':
+        messages.error(request, 'Order ini tidak menggunakan pembayaran Midtrans!')
+        return redirect('order_detail', order_id=order.id)
+    
+    # Buat transaksi Midtrans baru (akan generate snap token baru)
+    from .midtrans_utils import MidtransPayment
+    
+    try:
+        midtrans = MidtransPayment()
+        result = midtrans.create_transaction(order)
+        
+        if result['success']:
+            # Update order dengan snap token baru
+            order.midtrans_snap_token = result['snap_token']
+            order.midtrans_order_id = order.order_number
+            order.midtrans_transaction_status = 'pending'  # Reset status ke pending
+            order.save()
+            
+            messages.success(request, 'Transaksi pembayaran baru berhasil dibuat!')
+            # Redirect ke payment page
+            return redirect('midtrans_payment', order_id=order.id)
+        else:
+            messages.error(request, f'Gagal membuat transaksi baru: {result["error"]}')
+            return redirect('order_detail', order_id=order.id)
+            
+    except Exception as e:
+        messages.error(request, f'Terjadi kesalahan: {str(e)}')
+        return redirect('order_detail', order_id=order.id)
+
+
+@login_required
+@require_POST
+def cancel_order(request, order_id):
+    """View untuk membatalkan pesanan"""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    # Validasi: hanya order dengan status pending yang bisa dibatalkan
+    if order.status != 'pending':
+        messages.error(request, 'Hanya pesanan dengan status menunggu pembayaran yang dapat dibatalkan!')
+        return redirect('order_detail', order_id=order.id)
+    
+    try:
+        # Kembalikan stock produk
+        for item in order.items.all():
+            product = item.product
+            product.stock += item.quantity
+            product.save()
+        
+        # Update status order menjadi cancelled
+        order.status = 'cancelled'
+        order.save()
+        
+        messages.success(request, 'Pesanan berhasil dibatalkan. Stock produk telah dikembalikan.')
+        return redirect('order_detail', order_id=order.id)
+        
+    except Exception as e:
+        messages.error(request, f'Terjadi kesalahan saat membatalkan pesanan: {str(e)}')
         return redirect('order_detail', order_id=order.id)
 
 

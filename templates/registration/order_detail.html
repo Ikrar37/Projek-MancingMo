@@ -27,9 +27,15 @@
                 <h1>Order #{{ order.id }}</h1>
                 <p>Placed on {{ order.created_at|date:"F d, Y" }} at {{ order.created_at|date:"H:i" }}</p>
             </div>
+            {% if order.status == 'pending' and order.midtrans_transaction_status in 'expire,cancel,deny' %}
+            <span class="order-status-badge status-expired" style="background: #dc3545;">
+                PEMBAYARAN KADALUARSA
+            </span>
+            {% else %}
             <span class="order-status-badge status-{{ order.status|lower }}">
                 {{ order.get_status_display }}
             </span>
+            {% endif %}
         </div>
     </div>
 
@@ -126,14 +132,20 @@
                 
                 <div class="info-content">
                     <div class="info-item">
-                        <span class="info-label">Method:</span>
+                        <span class="info-label">METHOD:</span>
                         <span class="info-value">{{ order.get_payment_method_display }}</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Status:</span>
-                        <span class="order-status-badge status-{{ order.status|lower }}">
+                        <span class="info-label">STATUS:</span>
+                        {% if order.status == 'pending' and order.midtrans_transaction_status in 'expire,cancel,deny' %}
+                        <span class="order-status-badge status-expired" style="background: #dc3545; display: inline-block; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
+                            PEMBAYARAN KADALUARSA
+                        </span>
+                        {% else %}
+                        <span class="order-status-badge status-{{ order.status|lower }}" style="display: inline-block; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
                             {{ order.get_status_display }}
                         </span>
+                        {% endif %}
                     </div>
                     {% if order.payment_proof %}
                     <div class="info-item">
@@ -148,17 +160,48 @@
                     </div>
                     {% endif %}
                     
-                    <!-- Tombol Lanjutkan Pembayaran -->
-                    {% if order.status == 'pending' and order.payment_method == 'midtrans' and order.midtrans_snap_token %}
-                    <div class="info-item" style="margin-top: 20px;">
-                        <a href="{% url 'continue_payment' order_id=order.id %}" class="btn-continue-payment" style="display: inline-block; width: 100%; padding: 12px 20px; background: #1f7a1f; color: white; text-align: center; text-decoration: none; border-radius: 8px; font-weight: 600; transition: background 0.3s;">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;">
-                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                                <line x1="1" y1="10" x2="23" y2="10"/>
-                            </svg>
-                            Lanjutkan Pembayaran
-                        </a>
-                    </div>
+                    <!-- Tombol Pembayaran dan Batalkan -->
+                    {% if order.status == 'pending' %}
+                        {% if order.payment_method == 'midtrans' %}
+                            {% if order.midtrans_transaction_status in 'expire,cancel,deny' %}
+                            <!-- Jika expired, tampilkan tombol Bayar Ulang -->
+                            <div class="info-item" style="margin-top: 20px;">
+                                <a href="{% url 'retry_payment' order_id=order.id %}" class="btn-retry-payment">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                                    </svg>
+                                    Bayar Ulang
+                                </a>
+                                <p style="margin-top: 12px; font-size: 0.85em; color: #666; text-align: center; line-height: 1.4;">
+                                    ⏱️ Waktu pembayaran telah habis.<br>
+                                    Silakan buat transaksi pembayaran baru.
+                                </p>
+                            </div>
+                            {% elif order.midtrans_snap_token %}
+                            <!-- Jika masih aktif, tampilkan tombol Lanjutkan Pembayaran -->
+                            <div class="info-item" style="margin-top: 20px;">
+                                <a href="{% url 'continue_payment' order_id=order.id %}" class="btn-continue-payment">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                        <line x1="1" y1="10" x2="23" y2="10"/>
+                                    </svg>
+                                    Lanjutkan Pembayaran
+                                </a>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+                        
+                        <!-- ✅ TOMBOL BATALKAN PESANAN -->
+                        <div class="info-item" style="margin-top: 12px;">
+                            <button onclick="confirmCancel()" class="btn-cancel-order">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="15" y1="9" x2="9" y2="15"/>
+                                    <line x1="9" y1="9" x2="15" y2="15"/>
+                                </svg>
+                                Batalkan Pesanan
+                            </button>
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -182,12 +225,16 @@
                         </div>
                     </div>
                     
-                    <div class="timeline-item {% if order.status in 'paid,processing,shipped,delivered' %}completed{% endif %}">
+                    <div class="timeline-item {% if order.status in 'paid,processing,shipped,delivered' %}completed{% elif order.status == 'pending' and order.midtrans_transaction_status in 'expire,cancel,deny' %}expired{% elif order.status == 'cancelled' %}cancelled{% endif %}">
                         <div class="timeline-marker"></div>
                         <div class="timeline-content">
                             <h4>Payment Confirmed</h4>
                             {% if order.paid_at %}
                             <p>{{ order.paid_at|date:"d M Y, H:i" }}</p>
+                            {% elif order.status == 'cancelled' %}
+                            <p style="color: #dc3545; font-weight: 600;">❌ Pesanan dibatalkan</p>
+                            {% elif order.status == 'pending' and order.midtrans_transaction_status in 'expire,cancel,deny' %}
+                            <p style="color: #dc3545; font-weight: 600;">❌ Pembayaran kadaluarsa</p>
                             {% else %}
                             <p>Waiting for payment</p>
                             {% endif %}
@@ -223,9 +270,93 @@
     </div>
 </div>
 
+<!-- ✅ FORM UNTUK BATALKAN PESANAN (HIDDEN) -->
+<form id="cancelOrderForm" method="POST" action="{% url 'cancel_order' order_id=order.id %}" style="display: none;">
+    {% csrf_token %}
+</form>
+
 <style>
+.btn-continue-payment,
+.btn-retry-payment,
+.btn-cancel-order {
+    display: inline-block;
+    width: 100%;
+    padding: 14px 20px;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-continue-payment {
+    background: #1f7a1f;
+}
+
 .btn-continue-payment:hover {
-    background: #166316 !important;
+    background: #166316;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(31, 122, 31, 0.3);
+}
+
+.btn-retry-payment {
+    background: #ff9800;
+}
+
+.btn-retry-payment:hover {
+    background: #f57c00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+/* ✅ STYLE TOMBOL BATALKAN */
+.btn-cancel-order {
+    background: #dc3545;
+}
+
+.btn-cancel-order:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-continue-payment svg,
+.btn-retry-payment svg,
+.btn-cancel-order svg {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin-right: 8px;
+    display: inline-block;
+}
+
+.status-expired {
+    background: #dc3545 !important;
+    color: white !important;
+}
+
+.timeline-item.expired .timeline-marker,
+.timeline-item.cancelled .timeline-marker {
+    background: #dc3545;
+    border-color: #dc3545;
+}
+
+.timeline-item.expired .timeline-marker::after,
+.timeline-item.cancelled .timeline-marker::after {
+    background: #dc3545;
 }
 </style>
+
+<script>
+// ✅ KONFIRMASI SEBELUM BATALKAN
+function confirmCancel() {
+    if (confirm('Apakah Anda yakin ingin membatalkan pesanan ini?\n\nStock produk akan dikembalikan ke inventory.')) {
+        document.getElementById('cancelOrderForm').submit();
+    }
+}
+</script>
 {% endblock %}
