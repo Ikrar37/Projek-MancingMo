@@ -760,7 +760,7 @@ def delete_selected_items(request):
 
 @login_required
 def checkout(request):
-    """View untuk halaman checkout - DENGAN MIDTRANS INTEGRATION"""
+    """View untuk halaman checkout - HANYA MIDTRANS"""
     cart = get_object_or_404(Cart, user=request.user)
     
     # Validasi cart tidak kosong
@@ -801,11 +801,11 @@ def checkout(request):
         city = request.POST.get('city', '').strip()
         district = request.POST.get('district', '').strip()
         postal_code = request.POST.get('postal_code', '').strip()
-        payment_method = request.POST.get('payment_method', '').strip()
+        payment_method = 'midtrans'  # ✅ HARDCODED ke midtrans
         save_address = request.POST.get('save_address')
         
         # Validasi data wajib
-        if not all([full_name, phone, address, city, payment_method]):
+        if not all([full_name, phone, address, city]):
             messages.error(request, 'Mohon lengkapi semua data wajib!')
             request.session['selected_items'] = selected_item_ids
             return redirect('checkout')
@@ -869,45 +869,37 @@ def checkout(request):
                     is_default=True
                 )
             
-            # ✅ INTEGRASI MIDTRANS - Jika payment method adalah midtrans
-            if payment_method == 'midtrans':
-                from .midtrans_utils import MidtransPayment
+            # ✅ INTEGRASI MIDTRANS - Langsung create transaction
+            from .midtrans_utils import MidtransPayment
+            
+            midtrans = MidtransPayment()
+            result = midtrans.create_transaction(order)
+            
+            if result['success']:
+                # Simpan snap token ke order
+                order.midtrans_snap_token = result['snap_token']
+                order.midtrans_order_id = order.order_number
+                order.save()
                 
-                midtrans = MidtransPayment()
-                result = midtrans.create_transaction(order)
+                # Hapus selected cart items
+                selected_cart_items.delete()
                 
-                if result['success']:
-                    # Simpan snap token ke order
-                    order.midtrans_snap_token = result['snap_token']
-                    order.midtrans_order_id = order.order_number
-                    order.save()
-                    
-                    # Hapus selected cart items
-                    selected_cart_items.delete()
-                    
-                    # Clear session
-                    if 'selected_items' in request.session:
-                        del request.session['selected_items']
-                    
-                    # Redirect ke payment page dengan snap token
-                    return redirect('midtrans_payment', order_id=order.id)
-                else:
-                    # Jika gagal membuat transaksi Midtrans
-                    order.delete()
-                    messages.error(request, f'Gagal membuat transaksi: {result["error"]}')
-                    request.session['selected_items'] = selected_item_ids
-                    return redirect('checkout')
-            
-            # Hapus selected cart items (untuk payment method lain)
-            selected_cart_items.delete()
-            
-            # Clear session
-            if 'selected_items' in request.session:
-                del request.session['selected_items']
-            
-            # Redirect ke halaman order success
-            messages.success(request, f'Pesanan berhasil dibuat! Nomor Order: {order.order_number}')
-            return redirect('order_success', order_id=order.id)
+                # Clear session
+                if 'selected_items' in request.session:
+                    del request.session['selected_items']
+                
+                # Redirect ke payment page dengan snap token
+                return redirect('midtrans_payment', order_id=order.id)
+            else:
+                # Jika gagal membuat transaksi Midtrans, kembalikan stock
+                for item in order.items.all():
+                    item.product.stock += item.quantity
+                    item.product.save()
+                
+                order.delete()
+                messages.error(request, f'Gagal membuat transaksi: {result["error"]}')
+                request.session['selected_items'] = selected_item_ids
+                return redirect('checkout')
             
         except Exception as e:
             messages.error(request, f'Terjadi kesalahan saat membuat pesanan: {str(e)}')

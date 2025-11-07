@@ -42,6 +42,9 @@
                     <input type="hidden" name="selected_items" value="{{ item.id }}">
                     {% endfor %}
                     
+                    <!-- Hidden input untuk payment method (hanya midtrans) -->
+                    <input type="hidden" name="payment_method" value="midtrans">
+                    
                     <!-- Info Pengiriman -->
                     <div class="checkout-section">
                         <h2 class="section-title">Info Pengiriman</h2>
@@ -134,51 +137,31 @@
                             </div>
                         </div>
 
-                        <h3 class="payment-method-title">Pilih Metode Pembayaran</h3>
+                        <h3 class="payment-method-title">Metode Pembayaran</h3>
 
                         <div class="payment-options">
-                            <!-- ✅ OPSI MIDTRANS (BARU) -->
-                            <label class="payment-option">
-                                <input type="radio" name="payment_method" value="midtrans" required checked>
+                            <!-- ✅ HANYA MIDTRANS -->
+                            <div class="payment-option selected">
                                 <div class="payment-card">
                                     <div class="payment-info">
                                         <span class="payment-name">💳 Midtrans Payment Gateway</span>
                                         <span class="payment-desc">Virtual Account, E-Wallet, Kartu Kredit, QRIS, dan lainnya</span>
                                     </div>
                                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                     </svg>
                                 </div>
-                            </label>
-
-                            <label class="payment-option">
-                                <input type="radio" name="payment_method" value="bank_transfer" required>
-                                <div class="payment-card">
-                                    <div class="payment-info">
-                                        <span class="payment-name">Transfer Bank Manual</span>
-                                        <span class="payment-desc">BCA, BNI, Mandiri, BRI (Upload bukti transfer)</span>
-                                    </div>
-                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                    </svg>
-                                </div>
-                            </label>
-
-                            <label class="payment-option">
-                                <input type="radio" name="payment_method" value="qris" required>
-                                <div class="payment-card">
-                                    <div class="payment-info">
-                                        <span class="payment-name">QRIS Manual</span>
-                                        <span class="payment-desc">Scan QR dengan aplikasi mobile banking</span>
-                                    </div>
-                                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                    </svg>
-                                </div>
-                            </label>
+                            </div>
                         </div>
 
-                        <button type="submit" class="btn-checkout">Buat Pesanan</button>
+                        <div class="payment-notice">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                            </svg>
+                            <p>Anda akan diarahkan ke halaman pembayaran Midtrans untuk menyelesaikan transaksi dengan berbagai pilihan metode pembayaran yang tersedia.</p>
+                        </div>
+
+                        <button type="submit" class="btn-checkout">Lanjutkan ke Pembayaran</button>
                     </div>
                 </form>
             </div>
@@ -230,6 +213,47 @@
         </div>
     </div>
 </section>
+
+<style>
+/* Style untuk payment option yang selected */
+.payment-option.selected {
+    cursor: default;
+}
+
+.payment-option.selected .payment-card {
+    border-color: #00a651;
+    background-color: #f0fdf4;
+}
+
+.payment-option.selected .payment-name {
+    color: #00a651;
+    font-weight: 600;
+}
+
+/* Style untuk payment notice */
+.payment-notice {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.payment-notice svg {
+    flex-shrink: 0;
+    color: #3b82f6;
+    margin-top: 2px;
+}
+
+.payment-notice p {
+    margin: 0;
+    color: #1e40af;
+    font-size: 14px;
+    line-height: 1.6;
+}
+</style>
 
 <script>
 // Data untuk auto-fill - PRIORITAS: UserProfile > Default Address
