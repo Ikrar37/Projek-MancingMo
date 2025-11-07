@@ -18,6 +18,7 @@ urlpatterns = [
 
     path('midtrans-payment/<int:order_id>/', views.midtrans_payment, name='midtrans_payment'),
     path('midtrans-notification/', views.midtrans_notification, name='midtrans_notification'),
+    path('continue-payment/<int:order_id>/', views.continue_payment, name='continue_payment'),  # ✅ TAMBAHAN BARU
     
     # Profile
     path('profile/', views.profile, name='profile'),

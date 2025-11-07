@@ -1026,6 +1026,48 @@ def midtrans_payment(request, order_id):
     
     return render(request, 'midtrans_payment.html', context)
 
+@login_required
+def continue_payment(request, order_id):
+    """View untuk melanjutkan pembayaran order yang masih pending"""
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    # Validasi: hanya order dengan status pending yang bisa lanjut bayar
+    if order.status != 'pending':
+        messages.error(request, 'Order ini tidak dapat dilanjutkan pembayarannya!')
+        return redirect('order_detail', order_id=order.id)
+    
+    # Validasi: harus menggunakan metode pembayaran midtrans
+    if order.payment_method != 'midtrans':
+        messages.error(request, 'Order ini tidak menggunakan pembayaran Midtrans!')
+        return redirect('order_detail', order_id=order.id)
+    
+    # Jika sudah punya snap token, langsung redirect ke halaman payment
+    if order.midtrans_snap_token:
+        return redirect('midtrans_payment', order_id=order.id)
+    
+    # Jika belum punya snap token, buat baru
+    from .midtrans_utils import MidtransPayment
+    
+    try:
+        midtrans = MidtransPayment()
+        result = midtrans.create_transaction(order)
+        
+        if result['success']:
+            # Simpan snap token ke order
+            order.midtrans_snap_token = result['snap_token']
+            order.midtrans_order_id = order.order_number
+            order.save()
+            
+            # Redirect ke payment page
+            return redirect('midtrans_payment', order_id=order.id)
+        else:
+            messages.error(request, f'Gagal membuat transaksi: {result["error"]}')
+            return redirect('order_detail', order_id=order.id)
+            
+    except Exception as e:
+        messages.error(request, f'Terjadi kesalahan: {str(e)}')
+        return redirect('order_detail', order_id=order.id)
+
 
 @require_POST
 def midtrans_notification(request):

@@ -147,6 +147,19 @@
                         </a>
                     </div>
                     {% endif %}
+                    
+                    <!-- Tombol Lanjutkan Pembayaran -->
+                    {% if order.status == 'pending' and order.payment_method == 'midtrans' and order.midtrans_snap_token %}
+                    <div class="info-item" style="margin-top: 20px;">
+                        <a href="{% url 'continue_payment' order_id=order.id %}" class="btn-continue-payment" style="display: inline-block; width: 100%; padding: 12px 20px; background: #1f7a1f; color: white; text-align: center; text-decoration: none; border-radius: 8px; font-weight: 600; transition: background 0.3s;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 8px;">
+                                <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                <line x1="1" y1="10" x2="23" y2="10"/>
+                            </svg>
+                            Lanjutkan Pembayaran
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -209,4 +222,10 @@
         </div>
     </div>
 </div>
+
+<style>
+.btn-continue-payment:hover {
+    background: #166316 !important;
+}
+</style>
 {% endblock %}
