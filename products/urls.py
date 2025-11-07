@@ -34,6 +34,9 @@ urlpatterns = [
     path('cart/delete-selected/', views.delete_selected_items, name='delete_selected_items'),
     path('api/cart/count/', views.get_cart_count, name='get_cart_count'),
     
+    # ✅ TAMBAHAN: Buy Now
+    path('buy-now/<int:product_id>/', views.buy_now, name='buy_now'),
+    
     # Checkout
     path('checkout/', views.checkout, name='checkout'),
     path('order-success/<int:order_id>/', views.order_success, name='order_success'),

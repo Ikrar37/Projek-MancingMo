@@ -754,19 +754,99 @@ def delete_selected_items(request):
         })
 
 
+# ✅ FUNGSI BARU: BUY NOW
+@login_required
+@require_POST
+def buy_now(request, product_id):
+    """View untuk beli sekarang - langsung ke checkout tanpa masuk keranjang"""
+    product = get_object_or_404(Product, id=product_id, is_active=True)
+    quantity = int(request.POST.get('quantity', 1))
+    
+    # Validasi stock
+    if quantity > product.stock:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'message': f'Stock {product.name} tidak mencukupi!'
+            })
+        messages.error(request, f'Stock {product.name} tidak mencukupi!')
+        return redirect('product_detail', slug=product.slug)
+    
+    # Simpan data produk dan quantity ke session untuk checkout
+    request.session['buy_now_data'] = {
+        'product_id': product.id,
+        'quantity': quantity
+    }
+    
+    # Response untuk AJAX
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': True,
+            'redirect_url': '/checkout/'
+        })
+    
+    # Redirect langsung ke checkout
+    return redirect('checkout')
 
 
 # ==================== CHECKOUT VIEWS ====================
 
 @login_required
 def checkout(request):
-    """View untuk halaman checkout - HANYA MIDTRANS"""
-    cart = get_object_or_404(Cart, user=request.user)
+    """View untuk halaman checkout - SUPPORT BUY NOW & CART ITEMS"""
     
-    # Validasi cart tidak kosong
-    if not cart.items.exists():
-        messages.error(request, 'Keranjang Anda kosong!')
-        return redirect('cart')
+    # ✅ CEK APAKAH INI DARI BUY NOW
+    buy_now_data = request.session.get('buy_now_data')
+    is_buy_now = buy_now_data is not None
+    
+    if is_buy_now:
+        # Mode: Beli Sekarang (langsung dari product detail)
+        product = get_object_or_404(Product, id=buy_now_data['product_id'], is_active=True)
+        quantity = buy_now_data['quantity']
+        
+        # Validasi stock
+        if quantity > product.stock:
+            messages.error(request, f'Stock {product.name} tidak mencukupi!')
+            del request.session['buy_now_data']
+            return redirect('product_detail', slug=product.slug)
+        
+        # Buat structure yang mirip dengan cart items untuk konsistensi
+        class BuyNowItem:
+            def __init__(self, product, quantity):
+                self.id = f"buynow_{product.id}"
+                self.product = product
+                self.quantity = quantity
+            
+            def get_subtotal(self):
+                return self.product.price * self.quantity
+        
+        cart_items = [BuyNowItem(product, quantity)]
+        cart_total = product.price * quantity
+        
+    else:
+        # Mode: Checkout dari keranjang
+        cart = get_object_or_404(Cart, user=request.user)
+        
+        # Validasi cart tidak kosong
+        if not cart.items.exists():
+            messages.error(request, 'Keranjang Anda kosong!')
+            return redirect('cart')
+        
+        # Ambil selected items dari POST atau session
+        selected_item_ids = request.POST.getlist('selected_items') or request.session.get('selected_items', [])
+        
+        if not selected_item_ids:
+            messages.error(request, 'Pilih minimal 1 produk untuk checkout!')
+            return redirect('cart')
+        
+        # Filter cart items berdasarkan selected items
+        cart_items = cart.items.filter(id__in=selected_item_ids)
+        
+        if not cart_items.exists():
+            messages.error(request, 'Produk yang dipilih tidak valid!')
+            return redirect('cart')
+        
+        cart_total = sum(item.get_subtotal() for item in cart_items)
     
     # Ambil profile user untuk auto-fill
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
@@ -778,21 +858,6 @@ def checkout(request):
     shipping_cost = Decimal('10000')
     
     if request.method == 'POST':
-        # Ambil selected items dari POST data
-        selected_item_ids = request.POST.getlist('selected_items')
-        
-        # Validasi ada produk yang dipilih
-        if not selected_item_ids:
-            messages.error(request, 'Pilih minimal 1 produk untuk checkout!')
-            return redirect('cart')
-        
-        # Filter cart items berdasarkan selected items
-        selected_cart_items = cart.items.filter(id__in=selected_item_ids)
-        
-        if not selected_cart_items.exists():
-            messages.error(request, 'Produk yang dipilih tidak valid!')
-            return redirect('cart')
-        
         # Ambil data dari form
         full_name = request.POST.get('full_name', '').strip()
         phone = request.POST.get('phone', '').strip()
@@ -807,18 +872,20 @@ def checkout(request):
         # Validasi data wajib
         if not all([full_name, phone, address, city]):
             messages.error(request, 'Mohon lengkapi semua data wajib!')
-            request.session['selected_items'] = selected_item_ids
+            if not is_buy_now:
+                request.session['selected_items'] = selected_item_ids
             return redirect('checkout')
         
         # Validasi stock sebelum membuat order
-        for cart_item in selected_cart_items:
-            if cart_item.quantity > cart_item.product.stock:
-                messages.error(request, f'Stock {cart_item.product.name} tidak mencukupi! Tersisa {cart_item.product.stock} item.')
-                request.session['selected_items'] = selected_item_ids
+        for item in cart_items:
+            if item.quantity > item.product.stock:
+                messages.error(request, f'Stock {item.product.name} tidak mencukupi! Tersisa {item.product.stock} item.')
+                if not is_buy_now:
+                    request.session['selected_items'] = selected_item_ids
                 return redirect('checkout')
         
-        # Hitung total dari selected items saja
-        subtotal = sum(item.get_subtotal() for item in selected_cart_items)
+        # Hitung total
+        subtotal = cart_total
         total = subtotal + shipping_cost
         
         try:
@@ -839,20 +906,20 @@ def checkout(request):
                 status='pending'
             )
             
-            # Buat order items dari selected cart items
-            for cart_item in selected_cart_items:
+            # Buat order items
+            for item in cart_items:
                 OrderItem.objects.create(
                     order=order,
-                    product=cart_item.product,
-                    product_name=cart_item.product.name,
-                    product_price=cart_item.product.price,
-                    quantity=cart_item.quantity,
-                    subtotal=cart_item.get_subtotal()
+                    product=item.product,
+                    product_name=item.product.name,
+                    product_price=item.product.price,
+                    quantity=item.quantity,
+                    subtotal=item.get_subtotal()
                 )
                 
                 # Kurangi stock produk
-                cart_item.product.stock -= cart_item.quantity
-                cart_item.product.save()
+                item.product.stock -= item.quantity
+                item.product.save()
             
             # Simpan alamat jika diminta
             if save_address:
@@ -881,12 +948,16 @@ def checkout(request):
                 order.midtrans_order_id = order.order_number
                 order.save()
                 
-                # Hapus selected cart items
-                selected_cart_items.delete()
-                
-                # Clear session
-                if 'selected_items' in request.session:
-                    del request.session['selected_items']
+                # ✅ CLEANUP berdasarkan mode
+                if is_buy_now:
+                    # Hapus buy_now_data dari session
+                    del request.session['buy_now_data']
+                else:
+                    # Hapus selected cart items
+                    CartItem.objects.filter(id__in=selected_item_ids).delete()
+                    # Clear session
+                    if 'selected_items' in request.session:
+                        del request.session['selected_items']
                 
                 # Redirect ke payment page dengan snap token
                 return redirect('midtrans_payment', order_id=order.id)
@@ -898,37 +969,28 @@ def checkout(request):
                 
                 order.delete()
                 messages.error(request, f'Gagal membuat transaksi: {result["error"]}')
-                request.session['selected_items'] = selected_item_ids
+                if not is_buy_now:
+                    request.session['selected_items'] = selected_item_ids
                 return redirect('checkout')
             
         except Exception as e:
             messages.error(request, f'Terjadi kesalahan saat membuat pesanan: {str(e)}')
-            request.session['selected_items'] = selected_item_ids
+            if not is_buy_now:
+                request.session['selected_items'] = selected_item_ids
             return redirect('checkout')
     
     # GET request - tampilkan halaman checkout
-    selected_item_ids = request.session.get('selected_items', request.POST.getlist('selected_items'))
-    
-    if selected_item_ids:
-        cart_items = cart.items.filter(id__in=selected_item_ids)
-        if not cart_items.exists():
-            messages.error(request, 'Produk yang dipilih tidak valid!')
-            return redirect('cart')
-        cart_total = sum(item.get_subtotal() for item in cart_items)
-    else:
-        messages.error(request, 'Pilih minimal 1 produk untuk checkout!')
-        return redirect('cart')
-    
-    if 'selected_items' in request.session and request.method == 'GET':
+    if not is_buy_now and 'selected_items' in request.session and request.method == 'GET':
         del request.session['selected_items']
     
     context = {
-        'cart': cart,
         'cart_items': cart_items,
         'user_profile': user_profile,
         'default_address': default_address,
         'shipping_cost': shipping_cost,
+        'subtotal': cart_total,
         'total': cart_total + shipping_cost,
+        'is_buy_now': is_buy_now,
     }
     
     return render(request, 'checkout.html', context)

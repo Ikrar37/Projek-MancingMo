@@ -49,13 +49,13 @@
 }
 
 /* Loading state untuk button */
-.btn-cart.loading {
+.btn-cart.loading, .btn-buy.loading {
     position: relative;
     pointer-events: none;
     opacity: 0.7;
 }
 
-.btn-cart.loading::after {
+.btn-cart.loading::after, .btn-buy.loading::after {
     content: '';
     position: absolute;
     width: 16px;
@@ -196,7 +196,7 @@
                         </svg>
                         Tambah ke Keranjang
                     </button>
-                    <button type="button" class="btn btn-buy" onclick="buyNow()">
+                    <button type="button" class="btn btn-buy" id="buyNowBtn" onclick="buyNow()">
                         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
                         </svg>
@@ -530,30 +530,42 @@ document.getElementById('addToCartForm').addEventListener('submit', function(e) 
 });
 {% endif %}
 
-// ============ BUY NOW ============
+// ✅ BUY NOW - LANGSUNG KE CHECKOUT
 function buyNow() {
     {% if user.is_authenticated %}
-    const form = document.getElementById('addToCartForm');
-    const formData = new FormData(form);
+    const btn = document.getElementById('buyNowBtn');
+    const quantity = document.getElementById('qty-input').value;
     
-    fetch(form.action, {
+    btn.classList.add('loading');
+    btn.disabled = true;
+    
+    const formData = new FormData();
+    formData.append('quantity', quantity);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    
+    fetch('{% url "buy_now" product.id %}', {
         method: 'POST',
         body: formData,
         headers: {
             'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
         }
     })
     .then(response => response.json())
     .then(data => {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        
         if (data.success) {
-            window.location.href = '{% url "cart" %}';
+            // Redirect ke checkout
+            window.location.href = data.redirect_url;
         } else {
             showToast(data.message, true);
         }
     })
     .catch(error => {
         console.error('Error:', error);
+        btn.classList.remove('loading');
+        btn.disabled = false;
         showToast('Terjadi kesalahan. Silakan coba lagi.', true);
     });
     {% else %}

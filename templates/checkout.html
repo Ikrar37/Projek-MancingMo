@@ -12,7 +12,7 @@
 <!-- Hero Section -->
 <section class="checkout-hero">
     <div class="container">
-        <a href="{% url 'cart' %}" class="back-button">
+        <a href="{% if is_buy_now %}javascript:history.back(){% else %}{% url 'cart' %}{% endif %}" class="back-button">
             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
@@ -21,8 +21,10 @@
         <div class="breadcrumb">
             <a href="{% url 'home' %}">Home</a>
             <span class="separator">›</span>
+            {% if not is_buy_now %}
             <a href="{% url 'cart' %}">Cart</a>
             <span class="separator">›</span>
+            {% endif %}
             <span class="current">Check Out</span>
         </div>
     </div>
@@ -37,10 +39,12 @@
                 <form method="POST" id="checkoutForm">
                     {% csrf_token %}
                     
-                    <!-- Hidden inputs untuk selected items -->
-                    {% for item in cart_items %}
-                    <input type="hidden" name="selected_items" value="{{ item.id }}">
-                    {% endfor %}
+                    <!-- Hidden inputs untuk selected items (hanya untuk mode cart) -->
+                    {% if not is_buy_now %}
+                        {% for item in cart_items %}
+                        <input type="hidden" name="selected_items" value="{{ item.id }}">
+                        {% endfor %}
+                    {% endif %}
                     
                     <!-- Hidden input untuk payment method (hanya midtrans) -->
                     <input type="hidden" name="payment_method" value="midtrans">
@@ -125,7 +129,7 @@
                         <div class="payment-summary">
                             <div class="summary-row">
                                 <span>Subtotal</span>
-                                <span class="amount">Rp {{ cart.get_total|rupiah }}</span>
+                                <span class="amount">Rp {{ total|floatformat:0|default:"0" }}</span>
                             </div>
                             <div class="summary-row">
                                 <span>Estimasi Pengiriman : 15 Sep - 20 Sep 2025</span>
@@ -197,7 +201,7 @@
                     <div class="summary-totals">
                         <div class="total-row">
                             <span>Subtotal</span>
-                            <span>Rp {{ cart.get_total|rupiah }}</span>
+                            <span>Rp {{ subtotal|rupiah }}</span>
                         </div>
                         <div class="total-row">
                             <span>Estimasi Pengiriman</span>
@@ -205,7 +209,7 @@
                         </div>
                         <div class="total-row final">
                             <span>Total</span>
-                            <span>Rp {{ cart.get_total|rupiah }}</span>
+                            <span>Rp {{ total|rupiah }}</span>
                         </div>
                     </div>
                 </div>
