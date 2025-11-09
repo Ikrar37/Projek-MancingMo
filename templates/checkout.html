@@ -99,19 +99,47 @@
                             <div class="form-group">
                                 <label for="city">Kota *</label>
                                 <input type="text" id="city" name="city" placeholder="Contoh: Makassar" 
-                                       value="{% if user_profile.city %}{{ user_profile.city }}{% elif default_address %}{{ default_address.city }}{% endif %}" required>
+                                       value="{% if user_profile.city %}{{ user_profile.city }}{% elif default_address %}{{ default_address.city }}{% endif %}" required readonly style="background-color: #f5f5f5;">
+                                <small class="form-help">Saat ini hanya melayani pengiriman di Makassar</small>
                             </div>
                             <div class="form-group">
                                 <label for="province">Provinsi *</label>
                                 <input type="text" id="province" name="province" placeholder="Contoh: Sulawesi Selatan" 
-                                       value="{% if user_profile.province %}{{ user_profile.province }}{% elif default_address %}{{ default_address.province }}{% endif %}" required>
+                                       value="{% if user_profile.province %}{{ user_profile.province }}{% elif default_address %}{{ default_address.province }}{% endif %}" required readonly style="background-color: #f5f5f5;">
                             </div>
                         </div>
 
+<!-- ✅ FIELD BARU: DROPDOWN KECAMATAN -->
+<div class="form-group">
+    <label for="district">Kecamatan *</label>
+    <select id="district" name="district" required onchange="updateShippingCost()">
+        <option value="">Pilih Kecamatan</option>
+        {% for kecamatan in kecamatan_list %}
+        <option value="{{ kecamatan.kecamatan }}" 
+                {% if user_profile.district == kecamatan.kecamatan %}selected{% endif %}>
+            {{ kecamatan.kecamatan }} - Rp {{ kecamatan.harga|rupiah }}
+        </option>
+        {% endfor %}
+    </select>
+    <small class="form-help">Pilih kecamatan untuk melihat biaya pengiriman</small>
+</div>
                         <div class="form-group">
                             <label for="postal_code">Kode Pos (Opsional)</label>
                             <input type="text" id="postal_code" name="postal_code" placeholder="90123" 
                                    value="{% if user_profile.postal_code %}{{ user_profile.postal_code }}{% elif default_address %}{{ default_address.postal_code }}{% endif %}">
+                        </div>
+
+                        <!-- ✅ TAMPILAN BIAYA PENGIRIMAN REAL-TIME -->
+                        <div class="shipping-cost-preview" id="shippingCostPreview" style="display: none;">
+                            <div class="shipping-cost-card">
+                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                                </svg>
+                                <div>
+                                    <strong>Biaya Pengiriman:</strong>
+                                    <span id="shippingCostDisplay">Rp 0</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="form-checkbox">
@@ -129,15 +157,15 @@
                         <div class="payment-summary">
                             <div class="summary-row">
                                 <span>Subtotal</span>
-                                <span class="amount">Rp {{ total|floatformat:0|default:"0" }}</span>
+                                <span class="amount">Rp {{ subtotal|floatformat:0|default:"0" }}</span>
                             </div>
                             <div class="summary-row">
-                                <span>Estimasi Pengiriman : 15 Sep - 20 Sep 2025</span>
-                                <span class="amount">Rp {{ shipping_cost|rupiah }}</span>
+                                <span>Biaya Pengiriman</span>
+                                <span class="amount" id="finalShippingCost">Rp {{ shipping_cost|rupiah }}</span>
                             </div>
                             <div class="summary-row total-row">
                                 <span>Total</span>
-                                <span class="amount">Rp {{ total|rupiah }}</span>
+                                <span class="amount" id="finalTotal">Rp {{ total|rupiah }}</span>
                             </div>
                         </div>
 
@@ -199,18 +227,19 @@
                     </div>
 
                     <div class="summary-totals">
-                        <div class="total-row">
-                            <span>Subtotal</span>
-                            <span>Rp {{ subtotal|rupiah }}</span>
-                        </div>
-                        <div class="total-row">
-                            <span>Estimasi Pengiriman</span>
-                            <span>Untuk dihitung</span>
-                        </div>
-                        <div class="total-row final">
-                            <span>Total</span>
-                            <span>Rp {{ total|rupiah }}</span>
-                        </div>
+    <div class="total-row">
+        <span>Subtotal</span>
+        <span>Rp {{ subtotal|rupiah }}</span>  <!-- PASTIKAN PAKAI FILTER RUPIAH -->
+    </div>
+    <div class="total-row">
+        <span>Biaya Pengiriman</span>
+        <span id="summary-shipping">Pilih kecamatan</span>
+    </div>
+    <div class="total-row final">
+        <span>Total</span>
+        <span id="summary-total">Rp {{ subtotal|rupiah }}</span>  <!-- PASTIKAN PAKAI FILTER RUPIAH -->
+    </div>
+</div>
                     </div>
                 </div>
             </div>
@@ -219,43 +248,86 @@
 </section>
 
 <style>
-/* Style untuk payment option yang selected */
-.payment-option.selected {
-    cursor: default;
+/* Style untuk shipping cost preview */
+.shipping-cost-preview {
+    margin: 15px 0;
 }
 
-.payment-option.selected .payment-card {
-    border-color: #00a651;
-    background-color: #f0fdf4;
-}
-
-.payment-option.selected .payment-name {
-    color: #00a651;
-    font-weight: 600;
-}
-
-/* Style untuk payment notice */
-.payment-notice {
+.shipping-cost-card {
     display: flex;
+    align-items: center;
     gap: 12px;
     padding: 16px;
-    background-color: #eff6ff;
-    border: 1px solid #bfdbfe;
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
     border-radius: 8px;
+    color: #166534;
+}
+
+.shipping-cost-card svg {
+    flex-shrink: 0;
+}
+
+.shipping-cost-card div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Style untuk form help text */
+.form-help {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Style untuk select district */
+#district {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: white;
+}
+
+#district:focus {
+    outline: none;
+    border-color: #00a651;
+    box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.1);
+}
+
+/* Style untuk button states */
+.btn-continue {
+    width: 100%;
+    padding: 15px;
+    background-color: #00a651;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
     margin-top: 20px;
 }
 
-.payment-notice svg {
-    flex-shrink: 0;
-    color: #3b82f6;
-    margin-top: 2px;
+.btn-continue:hover:not(:disabled) {
+    background-color: #008f45;
+    transform: translateY(-2px);
 }
 
-.payment-notice p {
-    margin: 0;
-    color: #1e40af;
-    font-size: 14px;
-    line-height: 1.6;
+.btn-continue:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Style untuk error state */
+.input-error {
+    border-color: #e74c3c !important;
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1) !important;
 }
 </style>
 
@@ -267,17 +339,152 @@ const savedAddressData = {
     address: "{% if user_profile.address %}{{ user_profile.address }}{% elif default_address %}{{ default_address.address }}{% endif %}",
     city: "{% if user_profile.city %}{{ user_profile.city }}{% elif default_address %}{{ default_address.city }}{% endif %}",
     province: "{% if user_profile.province %}{{ user_profile.province }}{% elif default_address %}{{ default_address.province }}{% endif %}",
+    district: "{% if user_profile.district %}{{ user_profile.district }}{% elif default_address %}{{ default_address.district }}{% endif %}",
     postal_code: "{% if user_profile.postal_code %}{{ user_profile.postal_code }}{% elif default_address %}{{ default_address.postal_code }}{% endif %}"
 };
 
+// HARGA ONGKIR HARDCODE - PASTI BERES!
+const shippingCosts = {
+    'Biringkanaya': 12000,
+    'Bontoala': 8000,
+    'Kepulauan Sangkarrang': 25000,
+    'Makassar': 9000,
+    'Mamajang': 8500,
+    'Manggala': 15000,
+    'Mariso': 7500,
+    'Panakkukang': 11000,
+    'Rappocini': 10000,
+    'Tallo': 9500,
+    'Tamalanrea': 13000,
+    'Tamalate': 10500,
+    'Ujung Pandang': 7000,
+    'Ujung Tanah': 8000,
+    'Wajo': 9000,
+};
+
+// Function to format number to Rupiah - FIXED VERSION
+function formatRupiah(number) {
+    // Pastikan number adalah angka
+    const num = parseInt(number);
+    if (isNaN(num)) {
+        return 'Rp 0';
+    }
+    
+    // Format dengan separator ribuan
+    return 'Rp ' + num.toLocaleString('id-ID');
+}
+
+// Function untuk parse subtotal dari Django template
+function getSubtotal() {
+    // Ambil subtotal dari elemen HTML yang sudah diformat
+    const subtotalElement = document.querySelector('.summary-totals .total-row:first-child span:last-child');
+    if (subtotalElement) {
+        const subtotalText = subtotalElement.textContent.replace(/[^\d]/g, '');
+        return parseInt(subtotalText) || 0;
+    }
+    
+    // Fallback: parse dari Django template variable
+    const djangoSubtotal = parseInt({{ subtotal|default:0 }});
+    console.log('Django subtotal parsed:', djangoSubtotal);
+    return djangoSubtotal;
+}
+
+// Function to update shipping cost based on selected kecamatan
+function updateShippingCost() {
+    const districtSelect = document.getElementById('district');
+    const selectedDistrict = districtSelect.value;
+    const shippingCostPreview = document.getElementById('shippingCostPreview');
+    const shippingCostDisplay = document.getElementById('shippingCostDisplay');
+    const summaryShipping = document.getElementById('summary-shipping');
+    const summaryTotal = document.getElementById('summary-total');
+    
+    console.log('Selected district:', selectedDistrict);
+    
+    if (selectedDistrict && shippingCosts[selectedDistrict]) {
+        const shippingCost = shippingCosts[selectedDistrict];
+        const subtotal = getSubtotal(); // GUNAKAN FUNGSI BARU
+        const total = subtotal + shippingCost;
+        
+        console.log('Shipping:', shippingCost, 'Subtotal:', subtotal, 'Total:', total);
+        
+        // Update preview
+        shippingCostDisplay.textContent = formatRupiah(shippingCost);
+        shippingCostPreview.style.display = 'block';
+        
+        // Update summary
+        summaryShipping.textContent = formatRupiah(shippingCost);
+        summaryTotal.textContent = formatRupiah(total);
+        
+        // Update payment section jika sudah terbuka
+        const finalShippingCost = document.getElementById('finalShippingCost');
+        const finalTotal = document.getElementById('finalTotal');
+        if (finalShippingCost) {
+            finalShippingCost.textContent = formatRupiah(shippingCost);
+            finalTotal.textContent = formatRupiah(total);
+        }
+        
+        // Enable continue button jika semua field sudah terisi
+        checkFormValidity();
+    } else {
+        shippingCostPreview.style.display = 'none';
+        summaryShipping.textContent = 'Pilih kecamatan';
+        summaryTotal.textContent = formatRupiah(getSubtotal());
+        
+        // Disable continue button
+        const continueBtn = document.querySelector('.btn-continue');
+        continueBtn.disabled = true;
+        continueBtn.style.opacity = '0.5';
+        continueBtn.style.cursor = 'not-allowed';
+    }
+}
+
+// Function to check form validity
+function checkFormValidity() {
+    const fullName = document.getElementById('full_name').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const address = document.getElementById('address').value.trim();
+    const district = document.getElementById('district').value.trim();
+    const continueBtn = document.querySelector('.btn-continue');
+    
+    const isValid = fullName && phone && address && district;
+    
+    if (isValid) {
+        continueBtn.disabled = false;
+        continueBtn.style.opacity = '1';
+        continueBtn.style.cursor = 'pointer';
+    } else {
+        continueBtn.disabled = true;
+        continueBtn.style.opacity = '0.5';
+        continueBtn.style.cursor = 'not-allowed';
+    }
+    
+    return isValid;
+}
+
 // Function to use saved address (from profile or default address)
 function useSavedAddress() {
-    document.getElementById('full_name').value = savedAddressData.full_name;
-    document.getElementById('phone').value = savedAddressData.phone;
-    document.getElementById('address').value = savedAddressData.address;
-    document.getElementById('city').value = savedAddressData.city;
-    document.getElementById('province').value = savedAddressData.province;
-    document.getElementById('postal_code').value = savedAddressData.postal_code;
+    document.getElementById('full_name').value = savedAddressData.full_name || '';
+    document.getElementById('phone').value = savedAddressData.phone || '';
+    document.getElementById('address').value = savedAddressData.address || '';
+    document.getElementById('city').value = savedAddressData.city || 'Makassar';
+    document.getElementById('province').value = savedAddressData.province || 'Sulawesi Selatan';
+    document.getElementById('postal_code').value = savedAddressData.postal_code || '';
+    
+    // Set district jika ada
+    if (savedAddressData.district) {
+        const districtSelect = document.getElementById('district');
+        for (let i = 0; i < districtSelect.options.length; i++) {
+            if (districtSelect.options[i].value === savedAddressData.district) {
+                districtSelect.selectedIndex = i;
+                break;
+            }
+        }
+        // Trigger update shipping cost
+        updateShippingCost();
+    }
+    
+    // Check form validity setelah auto-fill
+    checkFormValidity();
     
     // Remove notice if exists
     const notice = document.querySelector('.address-notice');
@@ -289,31 +496,85 @@ function useSavedAddress() {
 // Function to show payment section
 function showPayment() {
     const form = document.getElementById('checkoutForm');
-    const requiredFields = form.querySelectorAll('.checkout-section:first-child input[required], .checkout-section:first-child textarea[required]');
+    const requiredFields = form.querySelectorAll('.checkout-section:first-child input[required], .checkout-section:first-child textarea[required], .checkout-section:first-child select[required]');
     
     let isValid = true;
     requiredFields.forEach(field => {
         if (!field.value.trim()) {
             isValid = false;
             field.style.borderColor = '#e74c3c';
+            field.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
             field.style.borderColor = '#ddd';
         }
     });
 
+    // Validasi khusus untuk kecamatan
+    const districtSelect = document.getElementById('district');
+    if (!districtSelect.value) {
+        isValid = false;
+        districtSelect.style.borderColor = '#e74c3c';
+        districtSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     if (isValid) {
         document.getElementById('paymentSection').style.display = 'block';
         document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        // Update final totals di payment section
+        const selectedDistrict = districtSelect.value;
+        if (selectedDistrict && shippingCosts[selectedDistrict]) {
+            const shippingCost = shippingCosts[selectedDistrict];
+            const subtotal = getSubtotal(); // GUNAKAN FUNGSI BARU
+            const total = subtotal + shippingCost;
+            
+            document.getElementById('finalShippingCost').textContent = formatRupiah(shippingCost);
+            document.getElementById('finalTotal').textContent = formatRupiah(total);
+        }
     } else {
-        alert('Mohon lengkapi semua data pengiriman yang wajib diisi!');
+        alert('Mohon lengkapi semua data pengiriman yang wajib diisi termasuk kecamatan!');
     }
 }
 
-// Reset border color on input
-document.querySelectorAll('input, textarea').forEach(field => {
+// Reset border color on input/select change
+document.querySelectorAll('input, textarea, select').forEach(field => {
     field.addEventListener('input', function() {
         this.style.borderColor = '#ddd';
+        checkFormValidity();
     });
+    field.addEventListener('change', function() {
+        this.style.borderColor = '#ddd';
+        checkFormValidity();
+    });
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Checkout page loaded');
+    
+    // Auto-set city and province to Makassar jika kosong
+    const cityField = document.getElementById('city');
+    const provinceField = document.getElementById('province');
+    
+    if (!cityField.value) cityField.value = 'Makassar';
+    if (!provinceField.value) provinceField.value = 'Sulawesi Selatan';
+    
+    // Set initial summary total
+    const initialSubtotal = getSubtotal();
+    document.getElementById('summary-total').textContent = formatRupiah(initialSubtotal);
+    
+    // Trigger update shipping cost if district is pre-selected
+    const districtSelect = document.getElementById('district');
+    if (districtSelect.value) {
+        console.log('District pre-selected:', districtSelect.value);
+        updateShippingCost();
+    }
+    
+    // Check form validity on load
+    checkFormValidity();
+    
+    // Debug: Log initial values
+    console.log('Initial subtotal calculated:', initialSubtotal);
 });
 </script>
 

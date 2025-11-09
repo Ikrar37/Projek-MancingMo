@@ -16,7 +16,7 @@ from django.utils import timezone
 from .models import (
     Product, Category, Cart, CartItem, Order, OrderItem, 
     ShippingAddress, ContactMessage, UserProfile, ProductReview, 
-    EmailVerification
+    EmailVerification, ShippingCost
 )
 
 # ==================== PUBLIC VIEWS ====================
@@ -853,7 +853,7 @@ def buy_now(request, product_id):
 
 @login_required
 def checkout(request):
-    """View untuk halaman checkout - SUPPORT BUY NOW & CART ITEMS"""
+    """View untuk halaman checkout - SUPPORT BUY NOW & CART ITEMS DENGAN ONGKIR PER KECAMATAN"""
     
     # ✅ CEK APAKAH INI DARI BUY NOW
     buy_now_data = request.session.get('buy_now_data')
@@ -914,8 +914,16 @@ def checkout(request):
     # Ambil alamat default dari ShippingAddress (jika ada)
     default_address = ShippingAddress.objects.filter(user=request.user, is_default=True).first()
     
-    # Hitung estimasi pengiriman (contoh: 10.000 flat rate)
-    shipping_cost = Decimal('10000')
+    # Ambil daftar kecamatan untuk dropdown
+    kecamatan_list = ShippingCost.objects.filter(is_active=True).order_by('kecamatan')
+    
+    # Hitung shipping cost default (rata-rata)
+    from django.db.models import Avg
+    default_shipping_cost = ShippingCost.objects.filter(is_active=True).aggregate(
+        avg_harga=Avg('harga')
+    )['avg_harga'] or Decimal('10000')
+    
+    shipping_cost = default_shipping_cost
     
     if request.method == 'POST':
         # Ambil data dari form
@@ -930,11 +938,20 @@ def checkout(request):
         save_address = request.POST.get('save_address')
         
         # Validasi data wajib
-        if not all([full_name, phone, address, city]):
-            messages.error(request, 'Mohon lengkapi semua data wajib!')
+        if not all([full_name, phone, address, city, district]):
+            messages.error(request, 'Mohon lengkapi semua data wajib termasuk kecamatan!')
             if not is_buy_now:
                 request.session['selected_items'] = selected_item_ids
             return redirect('checkout')
+        
+        # Hitung shipping cost berdasarkan kecamatan yang dipilih
+        try:
+            shipping_cost_obj = ShippingCost.objects.get(kecamatan=district, is_active=True)
+            shipping_cost = shipping_cost_obj.harga
+        except ShippingCost.DoesNotExist:
+            # Jika kecamatan tidak ditemukan, gunakan default
+            shipping_cost = default_shipping_cost
+            messages.warning(request, f'Ongkir untuk kecamatan {district} tidak ditemukan, menggunakan tarif default.')
         
         # Validasi stock sebelum membuat order
         for item in cart_items:
@@ -1047,6 +1064,7 @@ def checkout(request):
         'cart_items': cart_items,
         'user_profile': user_profile,
         'default_address': default_address,
+        'kecamatan_list': kecamatan_list,
         'shipping_cost': shipping_cost,
         'subtotal': cart_total,
         'total': cart_total + shipping_cost,

@@ -391,6 +391,25 @@ class ContactMessage(models.Model):
         self.is_read = True
         self.save()
 
+# ==================== SHIPPING COST MODEL ====================
+
+class ShippingCost(models.Model):
+    """Model untuk harga ongkir per kecamatan di Makassar"""
+    kecamatan = models.CharField(max_length=100, unique=True, verbose_name="Kecamatan")
+    harga = models.DecimalField(max_digits=10, decimal_places=0, default=10000, verbose_name="Harga Ongkir")
+    is_active = models.BooleanField(default=True, verbose_name="Aktif")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Dibuat Pada")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Diperbarui Pada")
+    
+    class Meta:
+        verbose_name = "Biaya Pengiriman"
+        verbose_name_plural = "Biaya Pengiriman"
+        ordering = ['kecamatan']
+        app_label = 'products'
+    
+    def __str__(self):
+        return f"{self.kecamatan} - Rp {self.harga}"
+
 # ==================== PRODUCT REVIEW MODEL ====================
 
 class ProductReview(models.Model):

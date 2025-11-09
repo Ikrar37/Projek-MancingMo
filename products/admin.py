@@ -4,6 +4,7 @@ from django.contrib.auth.models import User, Group
 from django.utils.html import format_html
 from django import forms
 from unfold.admin import ModelAdmin as UnfoldModelAdmin
+from .models import ShippingCost
 
 # ✅ Import semua model sekaligus
 from .models import (
@@ -639,6 +640,13 @@ class EmailVerificationAdmin(UnfoldModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('user')
+    
+@admin.register(ShippingCost)
+class ShippingCostAdmin(admin.ModelAdmin):
+    list_display = ['kecamatan', 'harga', 'is_active', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['kecamatan']
+    list_editable = ['harga', 'is_active']
 
 
 # ==================== ADMIN SITE CUSTOMIZATION ====================
