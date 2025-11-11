@@ -175,6 +175,79 @@
     box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
 }
 
+/* Style untuk shipping type */
+.shipping-type-section {
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fafafa;
+}
+
+.shipping-options {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.shipping-option {
+    flex: 1;
+    padding: 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.shipping-option:hover {
+    border-color: #4285f4;
+}
+
+.shipping-option.selected {
+    border-color: #4285f4;
+    background: #f0f7ff;
+}
+
+.shipping-option input {
+    display: none;
+}
+
+.shipping-option-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.shipping-option-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.shipping-option-details {
+    flex: 1;
+}
+
+.shipping-option-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+.shipping-option-desc {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.shipping-option-price {
+    font-weight: 600;
+    color: #4285f4;
+}
+
 /* Style untuk button states */
 .btn-continue {
     width: 100%;
@@ -249,6 +322,7 @@
                     
                     <!-- Hidden input untuk payment method (hanya midtrans) -->
                     <input type="hidden" name="payment_method" value="midtrans">
+                    <input type="hidden" name="shipping_type" id="shippingType" value="reguler">
                     
                     <!-- Info Pengiriman -->
                     <div class="checkout-section">
@@ -338,8 +412,47 @@
                                     <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
                                 </svg>
                                 <div>
-                                    <strong>Biaya Pengiriman:</strong>
+                                    <strong>Biaya Pengiriman Reguler:</strong>
                                     <span id="shippingCostDisplay">Rp 0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ✅ SECTION JENIS PENGIRIMAN -->
+                        <div class="shipping-type-section" id="shippingTypeSection" style="display: none;">
+                            <h3 class="section-subtitle">Jenis Pengiriman</h3>
+                            
+                            <div class="shipping-options">
+                                <div class="shipping-option selected" onclick="selectShippingType('reguler')">
+                                    <input type="radio" name="shipping_type_radio" value="reguler" checked>
+                                    <div class="shipping-option-content">
+                                        <div class="shipping-option-icon">
+                                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="shipping-option-details">
+                                            <div class="shipping-option-name">Reguler</div>
+                                            <div class="shipping-option-desc">Estimasi 2-3 hari</div>
+                                            <div class="shipping-option-price" id="regulerPrice">Rp 0</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="shipping-option" onclick="selectShippingType('express')">
+                                    <input type="radio" name="shipping_type_radio" value="express">
+                                    <div class="shipping-option-content">
+                                        <div class="shipping-option-icon">
+                                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="shipping-option-details">
+                                            <div class="shipping-option-name">Express</div>
+                                            <div class="shipping-option-desc">Estimasi 1 hari</div>
+                                            <div class="shipping-option-price" id="expressPrice">Rp 0</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -400,7 +513,7 @@
                             {% endif %}
                             
                             <div class="summary-row">
-                                <span>Biaya Pengiriman</span>
+                                <span>Biaya Pengiriman (<span id="finalShippingType">Reguler</span>)</span>
                                 <span class="amount" id="finalShippingCost">Rp {{ shipping_cost|format_currency }}</span>
                             </div>
                             <div class="summary-row total-row">
@@ -480,7 +593,7 @@
                         {% endif %}
                         
                         <div class="total-row">
-                            <span>Biaya Pengiriman</span>
+                            <span>Biaya Pengiriman (<span id="summary-shipping-type">Reguler</span>)</span>
                             <span id="summary-shipping">Pilih kecamatan</span>
                         </div>
                         
@@ -526,6 +639,9 @@ const shippingCosts = {
     'Wajo': 9000,
 };
 
+// TAMBAHAN HARGA EXPRESS
+const EXPRESS_SURCHARGE = 10000;
+
 // Function to format number to Rupiah - FIXED VERSION dengan titik
 function formatRupiah(number) {
     // Pastikan number adalah angka
@@ -553,55 +669,102 @@ function getSubtotal() {
     return djangoSubtotal;
 }
 
+// Function to select shipping type
+function selectShippingType(type) {
+    // Update radio buttons
+    document.querySelectorAll('.shipping-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    document.querySelector(`.shipping-option input[value="${type}"]`).parentElement.classList.add('selected');
+    
+    // Update hidden input
+    document.getElementById('shippingType').value = type;
+    
+    // Update shipping cost display
+    updateShippingCostDisplay();
+}
+
 // Function to update shipping cost based on selected kecamatan
 function updateShippingCost() {
     const districtSelect = document.getElementById('district');
     const selectedDistrict = districtSelect.value;
     const shippingCostPreview = document.getElementById('shippingCostPreview');
-    const shippingCostDisplay = document.getElementById('shippingCostDisplay');
-    const summaryShipping = document.getElementById('summary-shipping');
-    const summaryTotal = document.getElementById('summary-total');
+    const shippingTypeSection = document.getElementById('shippingTypeSection');
     
     console.log('Selected district:', selectedDistrict);
     
     if (selectedDistrict && shippingCosts[selectedDistrict]) {
-        const shippingCost = shippingCosts[selectedDistrict];
-        const subtotal = getSubtotal(); // GUNAKAN FUNGSI BARU
-        const voucherDiscount = {{ voucher_discount|default:0 }};
-        const total = subtotal + shippingCost - voucherDiscount;
-        
-        console.log('Shipping:', shippingCost, 'Subtotal:', subtotal, 'Voucher Discount:', voucherDiscount, 'Total:', total);
+        const baseShippingCost = shippingCosts[selectedDistrict];
         
         // Update preview
-        shippingCostDisplay.textContent = formatRupiah(shippingCost);
+        document.getElementById('shippingCostDisplay').textContent = formatRupiah(baseShippingCost);
         shippingCostPreview.style.display = 'block';
         
-        // Update summary
-        summaryShipping.textContent = formatRupiah(shippingCost);
-        summaryTotal.textContent = formatRupiah(total);
+        // Show shipping type section
+        shippingTypeSection.style.display = 'block';
         
-        // Update payment section jika sudah terbuka
-        const finalShippingCost = document.getElementById('finalShippingCost');
-        const finalTotal = document.getElementById('finalTotal');
-        if (finalShippingCost) {
-            finalShippingCost.textContent = formatRupiah(shippingCost);
-            finalTotal.textContent = formatRupiah(total);
-        }
+        // Update shipping type prices
+        document.getElementById('regulerPrice').textContent = formatRupiah(baseShippingCost);
+        document.getElementById('expressPrice').textContent = formatRupiah(baseShippingCost + EXPRESS_SURCHARGE);
+        
+        // Update summary dengan reguler sebagai default
+        updateShippingCostDisplay();
         
         // Enable continue button jika semua field sudah terisi
         checkFormValidity();
     } else {
         shippingCostPreview.style.display = 'none';
-        summaryShipping.textContent = 'Pilih kecamatan';
+        shippingTypeSection.style.display = 'none';
+        document.getElementById('summary-shipping').textContent = 'Pilih kecamatan';
         const subtotal = getSubtotal();
         const voucherDiscount = {{ voucher_discount|default:0 }};
-        summaryTotal.textContent = formatRupiah(subtotal - voucherDiscount);
+        document.getElementById('summary-total').textContent = formatRupiah(subtotal - voucherDiscount);
         
         // Disable continue button
         const continueBtn = document.querySelector('.btn-continue');
         continueBtn.disabled = true;
         continueBtn.style.opacity = '0.5';
         continueBtn.style.cursor = 'not-allowed';
+    }
+}
+
+// Function to update shipping cost display based on selected type
+function updateShippingCostDisplay() {
+    const districtSelect = document.getElementById('district');
+    const selectedDistrict = districtSelect.value;
+    const shippingType = document.getElementById('shippingType').value;
+    
+    if (selectedDistrict && shippingCosts[selectedDistrict]) {
+        const baseShippingCost = shippingCosts[selectedDistrict];
+        let finalShippingCost = baseShippingCost;
+        let shippingTypeName = 'Reguler';
+        
+        if (shippingType === 'express') {
+            finalShippingCost = baseShippingCost + EXPRESS_SURCHARGE;
+            shippingTypeName = 'Express';
+        }
+        
+        const subtotal = getSubtotal();
+        const voucherDiscount = {{ voucher_discount|default:0 }};
+        const total = subtotal + finalShippingCost - voucherDiscount;
+        
+        console.log('Shipping Type:', shippingType, 'Cost:', finalShippingCost, 'Subtotal:', subtotal, 'Total:', total);
+        
+        // Update summary
+        document.getElementById('summary-shipping-type').textContent = shippingTypeName;
+        document.getElementById('summary-shipping').textContent = formatRupiah(finalShippingCost);
+        document.getElementById('summary-total').textContent = formatRupiah(total);
+        
+        // Update payment section jika sudah terbuka
+        const finalShippingCostElem = document.getElementById('finalShippingCost');
+        const finalTotal = document.getElementById('finalTotal');
+        const finalShippingType = document.getElementById('finalShippingType');
+        
+        if (finalShippingCostElem) {
+            finalShippingType.textContent = shippingTypeName;
+            finalShippingCostElem.textContent = formatRupiah(finalShippingCost);
+            finalTotal.textContent = formatRupiah(total);
+        }
     }
 }
 
@@ -689,16 +852,7 @@ function showPayment() {
         document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         
         // Update final totals di payment section
-        const selectedDistrict = districtSelect.value;
-        if (selectedDistrict && shippingCosts[selectedDistrict]) {
-            const shippingCost = shippingCosts[selectedDistrict];
-            const subtotal = getSubtotal(); // GUNAKAN FUNGSI BARU
-            const voucherDiscount = {{ voucher_discount|default:0 }};
-            const total = subtotal + shippingCost - voucherDiscount;
-            
-            document.getElementById('finalShippingCost').textContent = formatRupiah(shippingCost);
-            document.getElementById('finalTotal').textContent = formatRupiah(total);
-        }
+        updateShippingCostDisplay();
     } else {
         alert('Mohon lengkapi semua data pengiriman yang wajib diisi termasuk kecamatan!');
     }

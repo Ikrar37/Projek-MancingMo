@@ -925,6 +925,7 @@ def checkout(request):
     )['avg_harga'] or Decimal('10000')
     
     shipping_cost = default_shipping_cost
+    shipping_type = 'reguler'  # Default shipping type
     
     # ✅ VOUCHER: Get applied voucher from session
     applied_voucher = request.session.get('applied_voucher')
@@ -943,6 +944,7 @@ def checkout(request):
         district = request.POST.get('district', '').strip()
         postal_code = request.POST.get('postal_code', '').strip()
         payment_method = 'midtrans'  # ✅ HARDCODED ke midtrans
+        shipping_type = request.POST.get('shipping_type', 'reguler')  # ✅ AMBIL SHIPPING TYPE
         save_address = request.POST.get('save_address')
         
         # Validasi data wajib
@@ -955,10 +957,21 @@ def checkout(request):
         # Hitung shipping cost berdasarkan kecamatan yang dipilih
         try:
             shipping_cost_obj = ShippingCost.objects.get(kecamatan=district, is_active=True)
-            shipping_cost = shipping_cost_obj.harga
+            base_shipping_cost = shipping_cost_obj.harga
+            
+            # ✅ TAMBAHKAN BIAYA EXPRESS JIKA DIPILIH
+            if shipping_type == 'express':
+                shipping_cost = base_shipping_cost + Decimal('10000')  # Tambahan Rp 10.000 untuk express
+            else:
+                shipping_cost = base_shipping_cost
+                
         except ShippingCost.DoesNotExist:
             # Jika kecamatan tidak ditemukan, gunakan default
-            shipping_cost = default_shipping_cost
+            base_shipping_cost = default_shipping_cost
+            if shipping_type == 'express':
+                shipping_cost = base_shipping_cost + Decimal('10000')
+            else:
+                shipping_cost = base_shipping_cost
             messages.warning(request, f'Ongkir untuk kecamatan {district} tidak ditemukan, menggunakan tarif default.')
         
         # ✅ VOUCHER: Validasi minimum purchase untuk voucher
@@ -996,6 +1009,7 @@ def checkout(request):
                 shipping_district=district,
                 shipping_postal_code=postal_code,
                 payment_method=payment_method,
+                shipping_type=shipping_type,  # ✅ SIMPAN SHIPPING TYPE
                 subtotal=subtotal,
                 shipping_cost=shipping_cost,
                 voucher_discount=voucher_discount,
@@ -1118,6 +1132,7 @@ def checkout(request):
         'default_address': default_address,
         'kecamatan_list': kecamatan_list,
         'shipping_cost': shipping_cost,
+        'shipping_type': shipping_type,  # ✅ TAMBAHKAN SHIPPING TYPE KE CONTEXT
         'subtotal': cart_total,
         'voucher_discount': voucher_discount,
         'total': cart_total + shipping_cost - voucher_discount,
