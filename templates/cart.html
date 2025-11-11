@@ -86,7 +86,7 @@
 
             <!-- Price -->
             <div class="item-price">
-                Rp {{ item.product.price|rupiah }}
+                Rp {{ item.product.price|format_currency }}
             </div>
 
             <!-- Quantity -->
@@ -98,7 +98,7 @@
 
             <!-- Total -->
             <div class="item-total" id="subtotal-{{ item.id }}">
-                Rp {{ item.get_subtotal|rupiah }}
+                Rp {{ item.get_subtotal|format_currency }}
             </div>
         </div>
         {% endfor %}
@@ -136,7 +136,7 @@
 <script>
 // Function to format number to Rupiah with dot separator
 function formatRupiah(number) {
-    return 'Rp ' + Math.floor(number).toLocaleString('id-ID');
+    return 'Rp ' + Math.floor(number).toLocaleString('id-ID').replace(/,/g, '.');
 }
 
 // Function to update cart summary based on checked items

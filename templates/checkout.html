@@ -318,7 +318,7 @@
                                 {% for kecamatan in kecamatan_list %}
                                 <option value="{{ kecamatan.kecamatan }}" 
                                         {% if user_profile.district == kecamatan.kecamatan %}selected{% endif %}>
-                                    {{ kecamatan.kecamatan }} - Rp {{ kecamatan.harga|rupiah }}
+                                    {{ kecamatan.kecamatan }} - Rp {{ kecamatan.harga|format_currency }}
                                 </option>
                                 {% endfor %}
                             </select>
@@ -356,7 +356,7 @@
                                     </svg>
                                     <div>
                                         <strong>Voucher {{ applied_voucher.code }} diterapkan!</strong>
-                                        <span>Diskon: Rp {{ applied_voucher.discount_amount|floatformat:0 }}</span>
+                                        <span>Diskon: Rp {{ applied_voucher.discount_amount|format_currency }}</span>
                                     </div>
                                     <button type="button" class="remove-voucher-btn" onclick="removeVoucher()">
                                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -389,23 +389,23 @@
                         <div class="payment-summary">
                             <div class="summary-row">
                                 <span>Subtotal</span>
-                                <span class="amount">Rp {{ subtotal|floatformat:0|default:"0" }}</span>
+                                <span class="amount">Rp {{ subtotal|format_currency|default:"0" }}</span>
                             </div>
                             
                             {% if applied_voucher %}
                             <div class="summary-row discount-row">
                                 <span>Diskon Voucher ({{ applied_voucher.code }})</span>
-                                <span class="amount">- Rp {{ applied_voucher.discount_amount|floatformat:0 }}</span>
+                                <span class="amount">- Rp {{ applied_voucher.discount_amount|format_currency }}</span>
                             </div>
                             {% endif %}
                             
                             <div class="summary-row">
                                 <span>Biaya Pengiriman</span>
-                                <span class="amount" id="finalShippingCost">Rp {{ shipping_cost|rupiah }}</span>
+                                <span class="amount" id="finalShippingCost">Rp {{ shipping_cost|format_currency }}</span>
                             </div>
                             <div class="summary-row total-row">
                                 <span>Total</span>
-                                <span class="amount" id="finalTotal">Rp {{ total|rupiah }}</span>
+                                <span class="amount" id="finalTotal">Rp {{ total|format_currency }}</span>
                             </div>
                         </div>
 
@@ -459,7 +459,7 @@
                                 <p class="item-spec">{{ item.product.description|truncatewords:5 }}</p>
                                 <div class="item-footer">
                                     <span class="item-quantity">x {{ item.quantity }}</span>
-                                    <span class="item-price">Rp {{ item.get_subtotal|rupiah }}</span>
+                                    <span class="item-price">Rp {{ item.get_subtotal|format_currency }}</span>
                                 </div>
                             </div>
                         </div>
@@ -469,13 +469,13 @@
                     <div class="summary-totals">
                         <div class="total-row">
                             <span>Subtotal</span>
-                            <span>Rp {{ subtotal|floatformat:0 }}</span>
+                            <span>Rp {{ subtotal|format_currency }}</span>
                         </div>
                         
                         {% if applied_voucher %}
                         <div class="total-row discount-row">
                             <span>Diskon Voucher ({{ applied_voucher.code }})</span>
-                            <span>- Rp {{ applied_voucher.discount_amount|floatformat:0 }}</span>
+                            <span>- Rp {{ applied_voucher.discount_amount|format_currency }}</span>
                         </div>
                         {% endif %}
                         
@@ -486,7 +486,7 @@
                         
                         <div class="total-row final">
                             <span>Total</span>
-                            <span id="summary-total">Rp {{ total|floatformat:0 }}</span>
+                            <span id="summary-total">Rp {{ total|format_currency }}</span>
                         </div>
                     </div>
                 </div>
@@ -526,7 +526,7 @@ const shippingCosts = {
     'Wajo': 9000,
 };
 
-// Function to format number to Rupiah - FIXED VERSION
+// Function to format number to Rupiah - FIXED VERSION dengan titik
 function formatRupiah(number) {
     // Pastikan number adalah angka
     const num = parseInt(number);
@@ -534,8 +534,8 @@ function formatRupiah(number) {
         return 'Rp 0';
     }
     
-    // Format dengan separator ribuan
-    return 'Rp ' + num.toLocaleString('id-ID');
+    // Format dengan separator ribuan menggunakan titik
+    return 'Rp ' + num.toLocaleString('id-ID').replace(/,/g, '.');
 }
 
 // Function untuk parse subtotal dari Django template
