@@ -6,6 +6,207 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/checkout.css' %}">
+<style>
+/* Voucher Styles */
+.voucher-section {
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fafafa;
+}
+
+.section-subtitle {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #333;
+}
+
+.voucher-input-group {
+    display: flex;
+    gap: 10px;
+}
+
+#voucherCode {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+#voucherCode:focus {
+    outline: none;
+    border-color: #4285f4;
+}
+
+.btn-apply-voucher {
+    padding: 12px 20px;
+    background: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.btn-apply-voucher:hover {
+    background: #3367d6;
+}
+
+.btn-apply-voucher:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.voucher-message {
+    margin-top: 8px;
+    font-size: 14px;
+    min-height: 20px;
+}
+
+.voucher-message.success {
+    color: #28a745;
+}
+
+.voucher-message.error {
+    color: #dc3545;
+}
+
+.applied-voucher {
+    margin-top: 10px;
+}
+
+.voucher-success {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 6px;
+    color: #155724;
+}
+
+.voucher-success > div {
+    flex: 1;
+    margin-left: 10px;
+}
+
+.voucher-success strong {
+    display: block;
+    margin-bottom: 2px;
+}
+
+.remove-voucher-btn {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.remove-voucher-btn:hover {
+    background: rgba(220, 53, 69, 0.1);
+}
+
+/* Update summary untuk menampilkan discount */
+.discount-row {
+    color: #28a745;
+}
+
+.discount-row .amount {
+    color: #28a745;
+    font-weight: 600;
+}
+
+/* Style untuk shipping cost preview */
+.shipping-cost-preview {
+    margin: 15px 0;
+}
+
+.shipping-cost-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    color: #155724;
+}
+
+.shipping-cost-card svg {
+    flex-shrink: 0;
+}
+
+.shipping-cost-card div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Style untuk form help text */
+.form-help {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Style untuk select district */
+#district {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: white;
+}
+
+#district:focus {
+    outline: none;
+    border-color: #4285f4;
+    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+}
+
+/* Style untuk button states */
+.btn-continue {
+    width: 100%;
+    padding: 15px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+}
+
+.btn-continue:hover:not(:disabled) {
+    background-color: #3367d6;
+    transform: translateY(-2px);
+}
+
+.btn-continue:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Style untuk error state */
+.input-error {
+    border-color: #e74c3c !important;
+    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1) !important;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -109,20 +310,21 @@
                             </div>
                         </div>
 
-<!-- ✅ FIELD BARU: DROPDOWN KECAMATAN -->
-<div class="form-group">
-    <label for="district">Kecamatan *</label>
-    <select id="district" name="district" required onchange="updateShippingCost()">
-        <option value="">Pilih Kecamatan</option>
-        {% for kecamatan in kecamatan_list %}
-        <option value="{{ kecamatan.kecamatan }}" 
-                {% if user_profile.district == kecamatan.kecamatan %}selected{% endif %}>
-            {{ kecamatan.kecamatan }} - Rp {{ kecamatan.harga|rupiah }}
-        </option>
-        {% endfor %}
-    </select>
-    <small class="form-help">Pilih kecamatan untuk melihat biaya pengiriman</small>
-</div>
+                        <!-- ✅ FIELD BARU: DROPDOWN KECAMATAN -->
+                        <div class="form-group">
+                            <label for="district">Kecamatan *</label>
+                            <select id="district" name="district" required onchange="updateShippingCost()">
+                                <option value="">Pilih Kecamatan</option>
+                                {% for kecamatan in kecamatan_list %}
+                                <option value="{{ kecamatan.kecamatan }}" 
+                                        {% if user_profile.district == kecamatan.kecamatan %}selected{% endif %}>
+                                    {{ kecamatan.kecamatan }} - Rp {{ kecamatan.harga|rupiah }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="form-help">Pilih kecamatan untuk melihat biaya pengiriman</small>
+                        </div>
+
                         <div class="form-group">
                             <label for="postal_code">Kode Pos (Opsional)</label>
                             <input type="text" id="postal_code" name="postal_code" placeholder="90123" 
@@ -142,6 +344,36 @@
                             </div>
                         </div>
 
+                        <!-- ✅ SECTION VOUCHER -->
+                        <div class="voucher-section">
+                            <h3 class="section-subtitle">Voucher Diskon</h3>
+                            
+                            {% if applied_voucher %}
+                            <div class="applied-voucher">
+                                <div class="voucher-success">
+                                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                    <div>
+                                        <strong>Voucher {{ applied_voucher.code }} diterapkan!</strong>
+                                        <span>Diskon: Rp {{ applied_voucher.discount_amount|floatformat:0 }}</span>
+                                    </div>
+                                    <button type="button" class="remove-voucher-btn" onclick="removeVoucher()">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="voucher-input-group">
+                                <input type="text" id="voucherCode" placeholder="Masukkan kode voucher" maxlength="20">
+                                <button type="button" class="btn-apply-voucher" onclick="applyVoucher()">Terapkan</button>
+                            </div>
+                            <div id="voucherMessage" class="voucher-message"></div>
+                            {% endif %}
+                        </div>
+
                         <div class="form-checkbox">
                             <input type="checkbox" id="save_address" name="save_address" value="1">
                             <label for="save_address">Simpan alamat sebagai alamat default untuk pembelian berikutnya</label>
@@ -159,6 +391,14 @@
                                 <span>Subtotal</span>
                                 <span class="amount">Rp {{ subtotal|floatformat:0|default:"0" }}</span>
                             </div>
+                            
+                            {% if applied_voucher %}
+                            <div class="summary-row discount-row">
+                                <span>Diskon Voucher ({{ applied_voucher.code }})</span>
+                                <span class="amount">- Rp {{ applied_voucher.discount_amount|floatformat:0 }}</span>
+                            </div>
+                            {% endif %}
+                            
                             <div class="summary-row">
                                 <span>Biaya Pengiriman</span>
                                 <span class="amount" id="finalShippingCost">Rp {{ shipping_cost|rupiah }}</span>
@@ -227,109 +467,33 @@
                     </div>
 
                     <div class="summary-totals">
-    <div class="total-row">
-        <span>Subtotal</span>
-        <span>Rp {{ subtotal|rupiah }}</span>  <!-- PASTIKAN PAKAI FILTER RUPIAH -->
-    </div>
-    <div class="total-row">
-        <span>Biaya Pengiriman</span>
-        <span id="summary-shipping">Pilih kecamatan</span>
-    </div>
-    <div class="total-row final">
-        <span>Total</span>
-        <span id="summary-total">Rp {{ subtotal|rupiah }}</span>  <!-- PASTIKAN PAKAI FILTER RUPIAH -->
-    </div>
-</div>
+                        <div class="total-row">
+                            <span>Subtotal</span>
+                            <span>Rp {{ subtotal|floatformat:0 }}</span>
+                        </div>
+                        
+                        {% if applied_voucher %}
+                        <div class="total-row discount-row">
+                            <span>Diskon Voucher ({{ applied_voucher.code }})</span>
+                            <span>- Rp {{ applied_voucher.discount_amount|floatformat:0 }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="total-row">
+                            <span>Biaya Pengiriman</span>
+                            <span id="summary-shipping">Pilih kecamatan</span>
+                        </div>
+                        
+                        <div class="total-row final">
+                            <span>Total</span>
+                            <span id="summary-total">Rp {{ total|floatformat:0 }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
-
-<style>
-/* Style untuk shipping cost preview */
-.shipping-cost-preview {
-    margin: 15px 0;
-}
-
-.shipping-cost-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px;
-    background-color: #4285f4;
-    border: 1px solid #ffffffff;
-    border-radius: 8px;
-    color: #ffffffff;
-}
-
-.shipping-cost-card svg {
-    flex-shrink: 0;
-}
-
-.shipping-cost-card div {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-/* Style untuk form help text */
-.form-help {
-    display: block;
-    margin-top: 5px;
-    font-size: 12px;
-    color: #6b7280;
-}
-
-/* Style untuk select district */
-#district {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #4285f4;
-    border-radius: 8px;
-    font-size: 14px;
-    background-color: white;
-}
-
-#district:focus {
-    outline: none;
-    border-color: #3367d6;
-    box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.1);
-}
-
-/* Style untuk button states */
-.btn-continue {
-    width: 100%;
-    padding: 15px;
-    background-color: #4285f4;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-top: 20px;
-}
-
-.btn-continue:hover:not(:disabled) {
-    background-color: #3367d6;
-    transform: translateY(-2px);
-}
-
-.btn-continue:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* Style untuk error state */
-.input-error {
-    border-color: #e74c3c !important;
-    box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1) !important;
-}
-</style>
 
 <script>
 // Data untuk auto-fill - PRIORITAS: UserProfile > Default Address
@@ -403,9 +567,10 @@ function updateShippingCost() {
     if (selectedDistrict && shippingCosts[selectedDistrict]) {
         const shippingCost = shippingCosts[selectedDistrict];
         const subtotal = getSubtotal(); // GUNAKAN FUNGSI BARU
-        const total = subtotal + shippingCost;
+        const voucherDiscount = {{ voucher_discount|default:0 }};
+        const total = subtotal + shippingCost - voucherDiscount;
         
-        console.log('Shipping:', shippingCost, 'Subtotal:', subtotal, 'Total:', total);
+        console.log('Shipping:', shippingCost, 'Subtotal:', subtotal, 'Voucher Discount:', voucherDiscount, 'Total:', total);
         
         // Update preview
         shippingCostDisplay.textContent = formatRupiah(shippingCost);
@@ -428,7 +593,9 @@ function updateShippingCost() {
     } else {
         shippingCostPreview.style.display = 'none';
         summaryShipping.textContent = 'Pilih kecamatan';
-        summaryTotal.textContent = formatRupiah(getSubtotal());
+        const subtotal = getSubtotal();
+        const voucherDiscount = {{ voucher_discount|default:0 }};
+        summaryTotal.textContent = formatRupiah(subtotal - voucherDiscount);
         
         // Disable continue button
         const continueBtn = document.querySelector('.btn-continue');
@@ -526,7 +693,8 @@ function showPayment() {
         if (selectedDistrict && shippingCosts[selectedDistrict]) {
             const shippingCost = shippingCosts[selectedDistrict];
             const subtotal = getSubtotal(); // GUNAKAN FUNGSI BARU
-            const total = subtotal + shippingCost;
+            const voucherDiscount = {{ voucher_discount|default:0 }};
+            const total = subtotal + shippingCost - voucherDiscount;
             
             document.getElementById('finalShippingCost').textContent = formatRupiah(shippingCost);
             document.getElementById('finalTotal').textContent = formatRupiah(total);
@@ -534,6 +702,95 @@ function showPayment() {
     } else {
         alert('Mohon lengkapi semua data pengiriman yang wajib diisi termasuk kecamatan!');
     }
+}
+
+// ✅ VOUCHER FUNCTIONS
+function applyVoucher() {
+    const voucherCode = document.getElementById('voucherCode').value.trim();
+    const messageDiv = document.getElementById('voucherMessage');
+    
+    if (!voucherCode) {
+        showVoucherMessage('Kode voucher tidak boleh kosong!', 'error');
+        return;
+    }
+    
+    const btn = document.querySelector('.btn-apply-voucher');
+    btn.disabled = true;
+    btn.textContent = 'Memproses...';
+    
+    fetch('{% url "apply_voucher" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ voucher_code: voucherCode })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showVoucherMessage(data.message, 'success');
+            // Reload page to update totals
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showVoucherMessage(data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showVoucherMessage('Terjadi kesalahan!', 'error');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Terapkan';
+    });
+}
+
+function removeVoucher() {
+    fetch('{% url "remove_voucher" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload page to update totals
+            location.reload();
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan!');
+    });
+}
+
+function showVoucherMessage(message, type) {
+    const messageDiv = document.getElementById('voucherMessage');
+    messageDiv.textContent = message;
+    messageDiv.className = `voucher-message ${type}`;
+}
+
+// Function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
 // Reset border color on input/select change
@@ -561,7 +818,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set initial summary total
     const initialSubtotal = getSubtotal();
-    document.getElementById('summary-total').textContent = formatRupiah(initialSubtotal);
+    const voucherDiscount = {{ voucher_discount|default:0 }};
+    document.getElementById('summary-total').textContent = formatRupiah(initialSubtotal - voucherDiscount);
     
     // Trigger update shipping cost if district is pre-selected
     const districtSelect = document.getElementById('district');
@@ -575,6 +833,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Debug: Log initial values
     console.log('Initial subtotal calculated:', initialSubtotal);
+    console.log('Voucher discount:', voucherDiscount);
 });
 </script>
 

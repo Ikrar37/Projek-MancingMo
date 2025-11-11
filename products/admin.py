@@ -4,29 +4,17 @@ from django.contrib.auth.models import User, Group
 from django.utils.html import format_html
 from django import forms
 from unfold.admin import ModelAdmin as UnfoldModelAdmin
-from .models import ShippingCost
 
 # ✅ Import semua model sekaligus
 from .models import (
-    Category, 
-    Product, 
-    ProductImage, 
-    UserProfile, 
-    ShippingAddress,
-    Cart, 
-    CartItem, 
-    Order, 
-    OrderItem, 
-    ContactMessage,
-    ProductReview,
-    AdminUser, 
-    CustomerUser,
-    EmailVerification 
+    Category, Product, ProductImage, UserProfile, ShippingAddress,
+    Cart, CartItem, Order, OrderItem, ContactMessage, ProductReview,
+    AdminUser, CustomerUser, EmailVerification, Voucher, ShippingCost
 )
+
 # ==================== UNREGISTER DEFAULT USER & GROUP ====================
 admin.site.unregister(User)
 admin.site.unregister(Group)
-
 
 # ==================== ADMIN USER ADMIN ====================
 
@@ -98,7 +86,6 @@ class AdminUserAdmin(UnfoldModelAdmin, BaseUserAdmin):
             return obj.profile.city
         return '-'
     city_display.short_description = 'Kota'
-
 
 # ==================== CUSTOMER USER ADMIN ====================
 
@@ -174,7 +161,6 @@ class CustomerUserAdmin(UnfoldModelAdmin, BaseUserAdmin):
         return format_html('<span style="color: gray;">0 Pesanan</span>')
     total_orders.short_description = 'Total Pesanan'
 
-
 # ==================== GROUP ADMIN ====================
 
 @admin.register(Group)
@@ -192,7 +178,6 @@ class GroupAdmin(UnfoldModelAdmin):
         count = obj.permissions.count()
         return f"{count} permission(s)"
     permissions_count.short_description = 'Permissions'
-
 
 # ==================== CATEGORY ADMIN ====================
 
@@ -219,7 +204,6 @@ class CategoryAdmin(UnfoldModelAdmin):
         count = obj.products.count()
         return f"{count} produk"
     total_products.short_description = 'Total Produk'
-
 
 # ==================== PRODUCT FORM (CUSTOM) ====================
 
@@ -249,7 +233,6 @@ class ProductAdminForm(forms.ModelForm):
             }),
         }
 
-
 # ==================== PRODUCT IMAGE INLINE ====================
 
 class ProductImageInline(admin.TabularInline):
@@ -258,7 +241,6 @@ class ProductImageInline(admin.TabularInline):
     fields = ['image', 'alt_text', 'order']
     verbose_name = "Gambar Tambahan"
     verbose_name_plural = "Gambar Tambahan Produk"
-
 
 # ==================== PRODUCT ADMIN ====================
 
@@ -317,7 +299,6 @@ class ProductAdmin(UnfoldModelAdmin):
         qs = super().get_queryset(request)
         return qs.select_related('category').prefetch_related('images')
 
-
 # ==================== PRODUCT IMAGE ADMIN ====================
 
 @admin.register(ProductImage)
@@ -350,7 +331,6 @@ class ProductImageAdmin(UnfoldModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('product')
-
 
 # ==================== USER PROFILE ADMIN ====================
 
@@ -385,7 +365,6 @@ class UserProfileAdmin(UnfoldModelAdmin):
         qs = super().get_queryset(request)
         return qs.select_related('user')
 
-
 # ==================== CART ADMIN ====================
 
 class CartItemInline(admin.TabularInline):
@@ -395,7 +374,6 @@ class CartItemInline(admin.TabularInline):
     readonly_fields = ['subtotal']
     verbose_name = "Item di Keranjang"
     verbose_name_plural = "Item di Keranjang"
-
 
 @admin.register(Cart)
 class CartAdmin(UnfoldModelAdmin):
@@ -421,14 +399,12 @@ class CartAdmin(UnfoldModelAdmin):
     total_items_display.short_description = 'Total Items'
     
     def total_price_display(self, obj):
-        # ✅ PERBAIKAN: Menggunakan format() method tanpa 'f' format code
         return "Rp {:,.0f}".format(obj.total_price)
     total_price_display.short_description = 'Total Price'
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('user').prefetch_related('items')
-
 
 # ==================== ORDER ADMIN ====================
 
@@ -439,7 +415,6 @@ class OrderItemInline(admin.TabularInline):
     readonly_fields = ['subtotal']
     verbose_name = "Item Pesanan"
     verbose_name_plural = "Item Pesanan"
-
 
 @admin.register(Order)
 class OrderAdmin(UnfoldModelAdmin):
@@ -462,7 +437,11 @@ class OrderAdmin(UnfoldModelAdmin):
             'fields': ('payment_method', 'payment_proof', 'paid_at')
         }),
         ('Pricing', {
-            'fields': ('subtotal', 'shipping_cost', 'total')
+            'fields': ('subtotal', 'shipping_cost', 'voucher_discount', 'total')
+        }),
+        ('Voucher', {
+            'fields': ('voucher', 'voucher_code'),
+            'classes': ('collapse',)
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
@@ -480,7 +459,6 @@ class OrderAdmin(UnfoldModelAdmin):
         qs = super().get_queryset(request)
         return qs.select_related('user').prefetch_related('items')
     
-    # ==================== ACTIONS - CRITICAL FIX ====================
     actions = ['mark_as_paid', 'mark_as_processing', 'mark_as_shipped', 'mark_as_delivered', 'mark_as_cancelled']
     
     @admin.action(description='✅ Tandai sebagai Sudah Dibayar')
@@ -508,7 +486,6 @@ class OrderAdmin(UnfoldModelAdmin):
     def mark_as_cancelled(self, request, queryset):
         updated = queryset.update(status='cancelled')
         self.message_user(request, f'{updated} order(s) berhasil ditandai sebagai "Dibatalkan".')
-
 
 # ==================== CONTACT MESSAGE ADMIN ====================
 
@@ -546,7 +523,6 @@ class ContactMessageAdmin(UnfoldModelAdmin):
         qs = super().get_queryset(request)
         return qs.select_related('user')
     
-    # ==================== ACTIONS - CRITICAL FIX ====================
     actions = ['mark_as_read', 'mark_as_unread']
     
     @admin.action(description='✅ Tandai sebagai Sudah Dibaca')
@@ -558,7 +534,6 @@ class ContactMessageAdmin(UnfoldModelAdmin):
     def mark_as_unread(self, request, queryset):
         updated = queryset.update(is_read=False)
         self.message_user(request, f'{updated} pesan berhasil ditandai sebagai belum dibaca.')
-
 
 # ==================== PRODUCT REVIEW ADMIN ====================
 
@@ -583,9 +558,7 @@ class ProductReviewAdmin(UnfoldModelAdmin):
         }),
     )
 
-
 # ==================== SHIPPING ADDRESS ADMIN ====================
-# ✅ SUDAH DIPERBAIKI - SESUAI DENGAN MODEL
 
 @admin.register(ShippingAddress)
 class ShippingAddressAdmin(UnfoldModelAdmin):
@@ -617,8 +590,8 @@ class ShippingAddressAdmin(UnfoldModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('user')
-    
-    # ==================== EMAIL VERIFICATION ADMIN (TAMBAHAN BARU) ====================
+
+# ==================== EMAIL VERIFICATION ADMIN ====================
 
 @admin.register(EmailVerification)
 class EmailVerificationAdmin(UnfoldModelAdmin):
@@ -640,14 +613,66 @@ class EmailVerificationAdmin(UnfoldModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         return qs.select_related('user')
+
+# ==================== VOUCHER ADMIN ====================
+
+@admin.register(Voucher)
+class VoucherAdmin(UnfoldModelAdmin):
+    list_display = ['code', 'discount_type', 'discount_value_display', 'min_purchase_amount', 'usage_limit', 'used_count', 'is_active', 'valid_from', 'valid_to']
+    list_filter = ['discount_type', 'is_active', 'valid_from', 'valid_to']
+    search_fields = ['code']
+    list_editable = ['is_active']
+    ordering = ['-created_at']
     
+    fieldsets = (
+        ('Informasi Voucher', {
+            'fields': ('code', 'is_active')
+        }),
+        ('Detail Diskon', {
+            'fields': ('discount_type', 'discount_value', 'min_purchase_amount', 'max_discount_amount')
+        }),
+        ('Periode Berlaku', {
+            'fields': ('valid_from', 'valid_to')
+        }),
+        ('Batas Penggunaan', {
+            'fields': ('usage_limit', 'used_count')
+        }),
+        ('Informasi Waktu', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at', 'used_count']
+    
+    def discount_value_display(self, obj):
+        if obj.discount_type == 'percentage':
+            return f"{obj.discount_value}%"
+        else:
+            return f"Rp {obj.discount_value:,.0f}"
+    discount_value_display.short_description = 'Nilai Diskon'
+
+# ==================== SHIPPING COST ADMIN ====================
+
 @admin.register(ShippingCost)
-class ShippingCostAdmin(admin.ModelAdmin):
+class ShippingCostAdmin(UnfoldModelAdmin):
     list_display = ['kecamatan', 'harga', 'is_active', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['kecamatan']
     list_editable = ['harga', 'is_active']
-
+    
+    fieldsets = (
+        ('Informasi Kecamatan', {
+            'fields': ('kecamatan', 'is_active')
+        }),
+        ('Biaya', {
+            'fields': ('harga',)
+        }),
+        ('Informasi Waktu', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    readonly_fields = ['created_at', 'updated_at']
 
 # ==================== ADMIN SITE CUSTOMIZATION ====================
 

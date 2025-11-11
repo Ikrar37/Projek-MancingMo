@@ -6,6 +6,7 @@ from django.dispatch import receiver
 import secrets
 from datetime import timedelta
 from django.utils import timezone
+from django.core.validators import MinValueValidator
 
 # ==================== CATEGORY MODEL ====================
 
@@ -320,6 +321,9 @@ class Order(models.Model):
     payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True, verbose_name="Bukti Pembayaran")
     subtotal = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Subtotal")
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=0, default=0, verbose_name="Ongkos Kirim")
+    voucher = models.ForeignKey('Voucher', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Voucher")
+    voucher_code = models.CharField(max_length=20, blank=True, null=True, verbose_name="Kode Voucher")
+    voucher_discount = models.DecimalField(max_digits=10, decimal_places=0, default=0, verbose_name="Diskon Voucher")
     total = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Total")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Dibuat Pada")
@@ -409,7 +413,68 @@ class ShippingCost(models.Model):
     
     def __str__(self):
         return f"{self.kecamatan} - Rp {self.harga}"
+    
+# ==================== VOUCHER MODEL ====================
 
+class Voucher(models.Model):
+    DISCOUNT_TYPE_CHOICES = [
+        ('percentage', 'Percentage'),
+        ('fixed', 'Fixed Amount'),
+    ]
+    
+    code = models.CharField(max_length=20, unique=True, verbose_name="Kode Voucher")
+    discount_type = models.CharField(max_length=10, choices=DISCOUNT_TYPE_CHOICES, default='percentage', verbose_name="Tipe Diskon")
+    discount_value = models.DecimalField(max_digits=10, decimal_places=0, validators=[MinValueValidator(0)], verbose_name="Nilai Diskon")
+    min_purchase_amount = models.DecimalField(max_digits=10, decimal_places=0, default=0, validators=[MinValueValidator(0)], verbose_name="Minimum Belanja")
+    max_discount_amount = models.DecimalField(max_digits=10, decimal_places=0, null=True, blank=True, validators=[MinValueValidator(0)], verbose_name="Maksimal Diskon")
+    valid_from = models.DateTimeField(verbose_name="Berlaku Dari")
+    valid_to = models.DateTimeField(verbose_name="Berlaku Sampai")
+    usage_limit = models.PositiveIntegerField(default=1, verbose_name="Batas Penggunaan")
+    used_count = models.PositiveIntegerField(default=0, verbose_name="Jumlah Digunakan")
+    is_active = models.BooleanField(default=True, verbose_name="Aktif")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Dibuat Pada")
+    
+    class Meta:
+        verbose_name = "Voucher"
+        verbose_name_plural = "Voucher"
+        ordering = ['-created_at']
+        app_label = 'products'
+    
+    def __str__(self):
+        return f"{self.code} - {self.discount_value}{'%' if self.discount_type == 'percentage' else ''}"
+    
+    def is_valid(self, cart_total=0):
+        """Cek apakah voucher valid untuk digunakan"""
+        now = timezone.now()
+        return (
+            self.is_active and
+            self.valid_from <= now <= self.valid_to and
+            self.used_count < self.usage_limit and
+            cart_total >= self.min_purchase_amount
+        )
+    
+    def calculate_discount(self, cart_total):
+        """Hitung jumlah diskon berdasarkan total cart"""
+        if not self.is_valid(cart_total):
+            return 0
+        
+        if self.discount_type == 'percentage':
+            discount = (self.discount_value / 100) * cart_total
+            if self.max_discount_amount and discount > self.max_discount_amount:
+                discount = self.max_discount_amount
+        else:  # fixed amount
+            discount = min(self.discount_value, cart_total)
+        
+        return discount
+    
+    def use_voucher(self):
+        """Tandai voucher sebagai digunakan"""
+        if self.used_count < self.usage_limit:
+            self.used_count += 1
+            self.save()
+            return True
+        return False
+    
 # ==================== PRODUCT REVIEW MODEL ====================
 
 class ProductReview(models.Model):

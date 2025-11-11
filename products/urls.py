@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import TemplateView
 from . import views
 
 urlpatterns = [
@@ -37,6 +38,9 @@ urlpatterns = [
     path('cart/delete-selected/', views.delete_selected_items, name='delete_selected_items'),
     path('api/cart/count/', views.get_cart_count, name='get_cart_count'),
     
+    path('cart/apply-voucher/', views.apply_voucher, name='apply_voucher'),
+    path('cart/remove-voucher/', views.remove_voucher, name='remove_voucher'),
+
     # ✅ TAMBAHAN: Buy Now
     path('buy-now/<int:product_id>/', views.buy_now, name='buy_now'),
     
@@ -48,4 +52,6 @@ urlpatterns = [
     path('product/<int:product_id>/review/add/', views.add_review, name='add_review'),
     path('review/<int:review_id>/edit/', views.edit_review, name='edit_review'),
     path('review/<int:review_id>/delete/', views.delete_review, name='delete_review'),
+
+    path('admin/toggle-sidebar/', TemplateView.as_view(template_name='empty.html'), name='toggle_sidebar'),
 ]

@@ -12,11 +12,12 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
+from .models import Voucher
 
 from .models import (
     Product, Category, Cart, CartItem, Order, OrderItem, 
     ShippingAddress, ContactMessage, UserProfile, ProductReview, 
-    EmailVerification, ShippingCost
+    EmailVerification, ShippingCost, Voucher
 )
 
 # ==================== PUBLIC VIEWS ====================
@@ -853,7 +854,7 @@ def buy_now(request, product_id):
 
 @login_required
 def checkout(request):
-    """View untuk halaman checkout - SUPPORT BUY NOW & CART ITEMS DENGAN ONGKIR PER KECAMATAN"""
+    """View untuk halaman checkout - SUPPORT BUY NOW & CART ITEMS DENGAN VOUCHER"""
     
     # ✅ CEK APAKAH INI DARI BUY NOW
     buy_now_data = request.session.get('buy_now_data')
@@ -925,6 +926,13 @@ def checkout(request):
     
     shipping_cost = default_shipping_cost
     
+    # ✅ VOUCHER: Get applied voucher from session
+    applied_voucher = request.session.get('applied_voucher')
+    voucher_discount = Decimal(0)
+    
+    if applied_voucher:
+        voucher_discount = Decimal(applied_voucher['discount_amount'])
+    
     if request.method == 'POST':
         # Ambil data dari form
         full_name = request.POST.get('full_name', '').strip()
@@ -953,6 +961,13 @@ def checkout(request):
             shipping_cost = default_shipping_cost
             messages.warning(request, f'Ongkir untuk kecamatan {district} tidak ditemukan, menggunakan tarif default.')
         
+        # ✅ VOUCHER: Validasi minimum purchase untuk voucher
+        if applied_voucher and cart_total < Decimal(applied_voucher['min_purchase_amount']):
+            messages.error(request, f'Voucher {applied_voucher["code"]} memerlukan minimum pembelian Rp {applied_voucher["min_purchase_amount"]:,.0f}')
+            if not is_buy_now:
+                request.session['selected_items'] = selected_item_ids
+            return redirect('checkout')
+        
         # Validasi stock sebelum membuat order
         for item in cart_items:
             if item.quantity > item.product.stock:
@@ -961,9 +976,13 @@ def checkout(request):
                     request.session['selected_items'] = selected_item_ids
                 return redirect('checkout')
         
-        # Hitung total
+        # Hitung total dengan voucher
         subtotal = cart_total
-        total = subtotal + shipping_cost
+        total = subtotal + shipping_cost - voucher_discount
+        
+        # Pastikan total tidak negatif
+        if total < 0:
+            total = Decimal(0)
         
         try:
             # Buat order
@@ -979,9 +998,20 @@ def checkout(request):
                 payment_method=payment_method,
                 subtotal=subtotal,
                 shipping_cost=shipping_cost,
+                voucher_discount=voucher_discount,
                 total=total,
                 status='pending'
             )
+            
+            # ✅ VOUCHER: Simpan info voucher jika ada
+            if applied_voucher:
+                try:
+                    voucher = Voucher.objects.get(code=applied_voucher['code'])
+                    order.voucher = voucher
+                    order.voucher_code = voucher.code
+                    order.save()  # Simpan dulu sebelum buat order items
+                except Voucher.DoesNotExist:
+                    pass
             
             # Buat order items
             for item in cart_items:
@@ -997,6 +1027,14 @@ def checkout(request):
                 # Kurangi stock produk
                 item.product.stock -= item.quantity
                 item.product.save()
+            
+            # ✅ VOUCHER: Gunakan voucher (tambah used_count)
+            if applied_voucher:
+                try:
+                    voucher = Voucher.objects.get(code=applied_voucher['code'])
+                    voucher.use_voucher()
+                except Voucher.DoesNotExist:
+                    pass
             
             # Simpan alamat jika diminta
             if save_address:
@@ -1025,7 +1063,7 @@ def checkout(request):
                 order.midtrans_order_id = order.order_number
                 order.save()
                 
-                # ✅ CLEANUP berdasarkan mode
+                # ✅ CLEANUP: Hapus data session
                 if is_buy_now:
                     # Hapus buy_now_data dari session
                     del request.session['buy_now_data']
@@ -1036,6 +1074,10 @@ def checkout(request):
                     if 'selected_items' in request.session:
                         del request.session['selected_items']
                 
+                # ✅ VOUCHER: Hapus voucher dari session setelah digunakan
+                if 'applied_voucher' in request.session:
+                    del request.session['applied_voucher']
+                
                 # Redirect ke payment page dengan snap token
                 return redirect('midtrans_payment', order_id=order.id)
             else:
@@ -1043,6 +1085,16 @@ def checkout(request):
                 for item in order.items.all():
                     item.product.stock += item.quantity
                     item.product.save()
+                
+                # ✅ VOUCHER: Kembalikan voucher usage count jika gagal
+                if applied_voucher:
+                    try:
+                        voucher = Voucher.objects.get(code=applied_voucher['code'])
+                        if voucher.used_count > 0:
+                            voucher.used_count -= 1
+                            voucher.save()
+                    except Voucher.DoesNotExist:
+                        pass
                 
                 order.delete()
                 messages.error(request, f'Gagal membuat transaksi: {result["error"]}')
@@ -1067,8 +1119,10 @@ def checkout(request):
         'kecamatan_list': kecamatan_list,
         'shipping_cost': shipping_cost,
         'subtotal': cart_total,
-        'total': cart_total + shipping_cost,
+        'voucher_discount': voucher_discount,
+        'total': cart_total + shipping_cost - voucher_discount,
         'is_buy_now': is_buy_now,
+        'applied_voucher': applied_voucher,  # ✅ VOUCHER: Kirim ke template
     }
     
     return render(request, 'checkout.html', context)
@@ -1284,3 +1338,142 @@ def get_cart_count(request):
         count = 0
     
     return JsonResponse({'count': count})
+
+@login_required
+@require_POST
+def apply_voucher(request):
+    """Apply voucher to cart"""
+    import json
+    from decimal import Decimal
+    
+    try:
+        data = json.loads(request.body)
+        voucher_code = data.get('voucher_code', '').strip()
+        
+        print(f"🔍 Mencari voucher: '{voucher_code}'")
+        
+        if not voucher_code:
+            return JsonResponse({
+                'success': False,
+                'message': 'Kode voucher tidak boleh kosong!'
+            })
+        
+        # Get user's cart dan HITUNG MANUAL
+        try:
+            cart = Cart.objects.get(user=request.user)
+            
+            # ✅ HITUNG MANUAL dari selected items di session
+            selected_item_ids = request.session.get('selected_items', [])
+            if selected_item_ids:
+                # Pakai selected items dari session (yang dipilih user di cart)
+                cart_items = cart.items.filter(id__in=selected_item_ids)
+                cart_total = sum(float(item.get_subtotal()) for item in cart_items)
+            else:
+                # Fallback: pakai semua items di cart
+                cart_total = float(cart.get_total())
+                
+            print(f"🛒 Cart total (manual): {cart_total}")
+            print(f"🛒 Selected items: {selected_item_ids}")
+            
+        except Cart.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Keranjang tidak ditemukan!'
+            })
+        
+        # Check voucher
+        try:
+            voucher = Voucher.objects.get(code=voucher_code)
+            print(f"✅ Voucher ditemukan: {voucher.code}")
+        except Voucher.DoesNotExist:
+            try:
+                voucher = Voucher.objects.get(code__iexact=voucher_code)
+                print(f"✅ Voucher ditemukan (case insensitive): {voucher.code}")
+            except Voucher.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Kode voucher tidak ditemukan!'
+                })
+        
+        # Debug data
+        print(f"📋 Cart: {cart_total}, Min Purchase: {voucher.min_purchase_amount}")
+        
+        # Cek validitas
+        is_valid = voucher.is_valid(Decimal(cart_total))
+        print(f"🔍 Validitas: {is_valid}")
+        
+        if not is_valid:
+            error_msg = "Voucher tidak valid!"
+            if voucher.valid_from > timezone.now():
+                error_msg = "Voucher belum berlaku!"
+            elif voucher.valid_to < timezone.now():
+                error_msg = "Voucher sudah kadaluarsa!"
+            elif voucher.used_count >= voucher.usage_limit:
+                error_msg = "Voucher sudah habis digunakan!"
+            elif cart_total < float(voucher.min_purchase_amount):
+                error_msg = f"Minimum belanja Rp {int(voucher.min_purchase_amount):,}!"
+            
+            return JsonResponse({
+                'success': False,
+                'message': error_msg
+            })
+        
+        # Calculate discount
+        discount = voucher.calculate_discount(Decimal(cart_total))
+        print(f"💰 Diskon: {discount}")
+        
+        # Store voucher in session
+        request.session['applied_voucher'] = {
+            'code': voucher.code,
+            'discount_type': voucher.discount_type,
+            'discount_value': float(voucher.discount_value),
+            'discount_amount': float(discount),
+            'min_purchase_amount': float(voucher.min_purchase_amount),
+            'max_discount_amount': float(voucher.max_discount_amount) if voucher.max_discount_amount else None
+        }
+        
+        request.session.modified = True
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Voucher {voucher.code} berhasil diterapkan!',
+            'voucher': {
+                'code': voucher.code,
+                'discount_amount': float(discount),
+                'discount_type': voucher.discount_type,
+                'discount_value': float(voucher.discount_value)
+            },
+            'discount_amount': float(discount)
+        })
+            
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        })
+
+@login_required
+@require_POST
+def remove_voucher(request):
+    """Remove applied voucher"""
+    try:
+        if 'applied_voucher' in request.session:
+            voucher_code = request.session['applied_voucher']['code']
+            del request.session['applied_voucher']
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Voucher {voucher_code} berhasil dihapus!'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Tidak ada voucher yang diterapkan!'
+            })
+            
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        })
