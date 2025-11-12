@@ -822,6 +822,8 @@ function getSubtotal() {
 
 // ✅ FUNCTION BARU: Select Shipping Method
 function selectShippingMethod(method) {
+    console.log('Selecting shipping method:', method);
+    
     // Update radio buttons
     document.querySelectorAll('.shipping-method-option').forEach(option => {
         option.classList.remove('selected');
@@ -837,6 +839,7 @@ function selectShippingMethod(method) {
     const saveAddressCheckbox = document.getElementById('saveAddressCheckbox');
     const useSavedAddressBtn = document.getElementById('useSavedAddressBtn');
     const addressNotice = document.getElementById('addressNotice');
+    const voucherSection = document.getElementById('voucherSection');
     
     if (method === 'delivery') {
         // Show delivery fields
@@ -847,6 +850,7 @@ function selectShippingMethod(method) {
         if (saveAddressCheckbox) saveAddressCheckbox.style.display = 'block';
         if (useSavedAddressBtn) useSavedAddressBtn.style.display = 'block';
         if (addressNotice) addressNotice.style.display = 'block';
+        if (voucherSection) voucherSection.style.display = 'block';
         
         // Reset shipping type to reguler
         selectShippingType('reguler');
@@ -896,6 +900,8 @@ function updateSummaryForPickup() {
 
 // Function to select shipping type
 function selectShippingType(type) {
+    console.log('Selecting shipping type:', type);
+    
     document.querySelectorAll('.shipping-option').forEach(option => {
         option.classList.remove('selected');
     });
@@ -905,32 +911,38 @@ function selectShippingType(type) {
     updateShippingCostDisplay();
 }
 
-// Function to update shipping cost based on selected kecamatan
+// ✅ FUNCTION YANG DIPERBAIKI: Update shipping cost based on selected kecamatan
 function updateShippingCost() {
     const districtSelect = document.getElementById('district');
     const selectedDistrict = districtSelect.value;
     const shippingCostPreview = document.getElementById('shippingCostPreview');
     const shippingTypeSection = document.getElementById('shippingTypeSection');
     
+    console.log('Selected district:', selectedDistrict);
+    console.log('Shipping costs data:', shippingCosts);
+    
     if (selectedDistrict && shippingCosts[selectedDistrict]) {
         const baseShippingCost = shippingCosts[selectedDistrict];
+        
+        console.log('Base shipping cost:', baseShippingCost);
         
         // Update preview
         document.getElementById('shippingCostDisplay').textContent = formatRupiah(baseShippingCost);
         shippingCostPreview.style.display = 'block';
         
-        // Show shipping type section
+        // Show shipping type section - INI YANG DIPERBAIKI
         shippingTypeSection.style.display = 'block';
         
         // Update shipping type prices
         document.getElementById('regulerPrice').textContent = formatRupiah(baseShippingCost);
         document.getElementById('expressPrice').textContent = formatRupiah(baseShippingCost + EXPRESS_SURCHARGE);
         
-        // Update summary
+        // Update summary - PASTIKAN INI DIPANGGIL
         updateShippingCostDisplay();
         
         checkFormValidity();
     } else {
+        console.log('District not found or no shipping cost data');
         shippingCostPreview.style.display = 'none';
         shippingTypeSection.style.display = 'none';
         document.getElementById('summary-shipping').textContent = 'Pilih kecamatan';
@@ -939,15 +951,19 @@ function updateShippingCost() {
         document.getElementById('summary-total').textContent = formatRupiah(subtotal - voucherDiscount);
         
         const continueBtn = document.querySelector('.btn-continue');
-        continueBtn.disabled = true;
-        continueBtn.style.opacity = '0.5';
-        continueBtn.style.cursor = 'not-allowed';
+        if (continueBtn) {
+            continueBtn.disabled = true;
+            continueBtn.style.opacity = '0.5';
+            continueBtn.style.cursor = 'not-allowed';
+        }
     }
 }
 
-// Function to update shipping cost display based on selected type
+// ✅ FUNCTION YANG DIPERBAIKI: Update shipping cost display based on selected type
 function updateShippingCostDisplay() {
     const shippingMethod = document.getElementById('shippingMethod').value;
+    
+    console.log('Updating shipping cost display, method:', shippingMethod);
     
     if (shippingMethod === 'pickup') {
         updateSummaryForPickup();
@@ -957,6 +973,8 @@ function updateShippingCostDisplay() {
     const districtSelect = document.getElementById('district');
     const selectedDistrict = districtSelect.value;
     const shippingType = document.getElementById('shippingType').value;
+    
+    console.log('District:', selectedDistrict, 'Type:', shippingType);
     
     if (selectedDistrict && shippingCosts[selectedDistrict]) {
         const baseShippingCost = shippingCosts[selectedDistrict];
@@ -971,6 +989,8 @@ function updateShippingCostDisplay() {
         const subtotal = getSubtotal();
         const voucherDiscount = {{ voucher_discount|default:0 }};
         const total = subtotal + finalShippingCost - voucherDiscount;
+        
+        console.log('Final shipping cost:', finalShippingCost, 'Total:', total);
         
         // Update summary
         document.getElementById('summary-shipping-type').textContent = shippingTypeName;
@@ -1005,14 +1025,16 @@ function checkFormValidity() {
         isValid = isValid && address && district;
     }
     
-    if (isValid) {
-        continueBtn.disabled = false;
-        continueBtn.style.opacity = '1';
-        continueBtn.style.cursor = 'pointer';
-    } else {
-        continueBtn.disabled = true;
-        continueBtn.style.opacity = '0.5';
-        continueBtn.style.cursor = 'not-allowed';
+    if (continueBtn) {
+        if (isValid) {
+            continueBtn.disabled = false;
+            continueBtn.style.opacity = '1';
+            continueBtn.style.cursor = 'pointer';
+        } else {
+            continueBtn.disabled = true;
+            continueBtn.style.opacity = '0.5';
+            continueBtn.style.cursor = 'not-allowed';
+        }
     }
     
     return isValid;
@@ -1039,7 +1061,10 @@ function useSavedAddress() {
                     break;
                 }
             }
-            updateShippingCost();
+            // PASTIKAN updateShippingCost() DIPANGGIL SETELAH MENGUBAH DISTRICT
+            setTimeout(() => {
+                updateShippingCost();
+            }, 100);
         }
         
         const notice = document.querySelector('.address-notice');
@@ -1064,13 +1089,13 @@ function showPayment() {
     
     if (!fullName.value.trim()) {
         isValid = false;
-        fullName.style.borderColor = '#e74c3c';
+        fullName.classList.add('input-error');
         fullName.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     
     if (!phone.value.trim()) {
         isValid = false;
-        phone.style.borderColor = '#e74c3c';
+        phone.classList.add('input-error');
         phone.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     
@@ -1081,13 +1106,13 @@ function showPayment() {
         
         if (!address.value.trim()) {
             isValid = false;
-            address.style.borderColor = '#e74c3c';
+            address.classList.add('input-error');
             address.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
         
         if (!district.value) {
             isValid = false;
-            district.style.borderColor = '#e74c3c';
+            district.classList.add('input-error');
             district.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }
@@ -1377,12 +1402,22 @@ function getCookie(name) {
 // Reset border color on input/select change
 document.querySelectorAll('input, textarea, select').forEach(field => {
     field.addEventListener('input', function() {
-        this.style.borderColor = '#ddd';
+        this.classList.remove('input-error');
         checkFormValidity();
+        
+        // Jika district berubah, update shipping cost
+        if (this.id === 'district') {
+            updateShippingCost();
+        }
     });
     field.addEventListener('change', function() {
-        this.style.borderColor = '#ddd';
+        this.classList.remove('input-error');
         checkFormValidity();
+        
+        // Jika district berubah, update shipping cost
+        if (this.id === 'district') {
+            updateShippingCost();
+        }
     });
 });
 
@@ -1410,8 +1445,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (initialShippingMethod === 'delivery') {
         const districtSelect = document.getElementById('district');
         if (districtSelect.value) {
-            updateShippingCost();
+            // Beri sedikit delay untuk memastikan DOM sudah siap
+            setTimeout(() => {
+                updateShippingCost();
+            }, 500);
         }
+        
+        // Tambahkan event listener untuk district select
+        districtSelect.addEventListener('change', function() {
+            updateShippingCost();
+        });
     }
     
     // Check form validity on load
@@ -1420,6 +1463,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Initial subtotal calculated:', initialSubtotal);
     console.log('Voucher discount:', voucherDiscount);
     console.log('Shipping method:', initialShippingMethod);
+    console.log('Shipping costs data loaded:', shippingCosts);
 });
 </script>
 
