@@ -343,12 +343,12 @@
                 </div>
                 <div class="info-row">
                     <span class="info-label">Tanggal Pesanan:</span>
-                    <span class="info-value">{{ order.created_at|indonesian_date }}</span>
+                    <span class="info-value">{{ order.created_at|tanggal_indonesia }}</span>
                 </div>
                 {% if order.paid_at %}
                 <div class="info-row">
                     <span class="info-label">Tanggal Dibayar:</span>
-                    <span class="info-value">{{ order.paid_at|indonesian_date }}</span>
+                    <span class="info-value">{{ order.paid_at|tanggal_indonesia }}</span>
                 </div>
                 {% endif %}
                 {% if order.midtrans_transaction_status %}

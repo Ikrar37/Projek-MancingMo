@@ -856,11 +856,6 @@ def buy_now(request, product_id):
 def checkout(request):
     """View untuk halaman checkout - SUPPORT BUY NOW & CART ITEMS DENGAN VOUCHER & PICKUP"""
     
-    # ✅ RESET VOUCHER JIKA HALAMAN DIAKSES MELALUI GET (REFRESH)
-    if request.method == 'GET':
-        if 'applied_voucher' in request.session:
-            del request.session['applied_voucher']
-    
     buy_now_data = request.session.get('buy_now_data')
     is_buy_now = buy_now_data is not None
     
@@ -1077,9 +1072,8 @@ def checkout(request):
                     if 'selected_items' in request.session:
                         del request.session['selected_items']
                 
-                # ✅ VOUCHER TIDAK DIHAPUS DI SINI AGAR BISA DIGUNAKAN DI ORDER
-                # if 'applied_voucher' in request.session:
-                #     del request.session['applied_voucher']
+                if 'applied_voucher' in request.session:
+                    del request.session['applied_voucher']
                 
                 return redirect('midtrans_payment', order_id=order.id)
             else:
@@ -1618,11 +1612,3 @@ def remove_voucher_ajax(request):
             'success': False,
             'message': f'Terjadi kesalahan: {str(e)}'
         })
-    
-@login_required
-def clear_voucher(request):
-    """Clear applied voucher from session"""
-    if 'applied_voucher' in request.session:
-        del request.session['applied_voucher']
-        return JsonResponse({'success': True, 'message': 'Voucher berhasil dihapus!'})
-    return JsonResponse({'success': False, 'message': 'Tidak ada voucher yang diterapkan!'})

@@ -156,7 +156,7 @@
                     </div>
                     <div class="detail-value">
                         {% if profile.birth_date %}
-                            {{ profile.birth_date|bulan_indonesia:"d F Y" }}
+                            {{ profile.birth_date|bulan_indonesia }}
                         {% else %}
                             Belum diisi
                         {% endif %}
