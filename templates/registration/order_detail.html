@@ -1,362 +1,438 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load currency_filters %}
+{% load indonesian_date_filters %}
 
-{% block title %}Order #{{ order.id }} - MancingMo{% endblock %}
+{% block title %}Detail Pesanan - MancingMo{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/order_detail.css' %}">
+<style>
+    .order-container {
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .order-card {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        margin-bottom: 30px;
+    }
+
+    .order-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .order-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #1a1a1a;
+    }
+
+    .order-status {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    .status-pending { background: #fff3cd; color: #856404; }
+    .status-paid { background: #d1ecf1; color: #0c5460; }
+    .status-processing { background: #d1ecf1; color: #0c5460; }
+    .status-shipped { background: #d4edda; color: #155724; }
+    .status-delivered { background: #d4edda; color: #155724; }
+    .status-cancelled { background: #f8d7da; color: #721c24; }
+
+    .order-info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+    }
+
+    .info-section {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .info-section h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+
+    .info-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .info-label {
+        color: #666;
+        font-weight: 500;
+    }
+
+    .info-value {
+        color: #1a1a1a;
+        font-weight: 600;
+        text-align: right;
+    }
+
+    .order-items {
+        margin-bottom: 30px;
+    }
+
+    .order-items h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 20px;
+    }
+
+    .item-card {
+        display: flex;
+        align-items: center;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        margin-bottom: 15px;
+    }
+
+    .item-card:last-child {
+        margin-bottom: 0;
+    }
+
+    .item-image {
+        width: 80px;
+        height: 80px;
+        border-radius: 8px;
+        object-fit: cover;
+        margin-right: 20px;
+    }
+
+    .item-details {
+        flex: 1;
+    }
+
+    .item-name {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 5px;
+    }
+
+    .item-price {
+        font-size: 14px;
+        color: #666;
+    }
+
+    .item-quantity {
+        font-size: 14px;
+        color: #666;
+    }
+
+    .item-subtotal {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1a73e8;
+    }
+
+    .order-summary {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 25px;
+        margin-top: 30px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        font-size: 15px;
+    }
+
+    .summary-row.voucher-discount {
+        color: #e53935;
+        font-weight: 600;
+    }
+
+    .summary-row.total {
+        margin-bottom: 0;
+        padding-top: 12px;
+        border-top: 2px solid #dee2e6;
+        font-weight: 700;
+        font-size: 18px;
+        color: #1a73e8;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background: #1a73e8;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #0d47a1;
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #545b62;
+        transform: translateY(-2px);
+    }
+
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #c82333;
+        transform: translateY(-2px);
+    }
+
+    .voucher-info {
+        background: #e8f5e8;
+        border-left: 4px solid #4caf50;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .voucher-code {
+        font-weight: 600;
+        color: #2e7d32;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #1a73e8;
+        text-decoration: none;
+        font-weight: 500;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+        gap: 12px;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="order-detail-container">
-    <!-- Back Button -->
-    <div class="back-button-container">
-        <a href="{% url 'order_history' %}" class="btn-back">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            Back to Orders
-        </a>
-    </div>
+<div class="order-container">
+    <a href="{% url 'order_history' %}" class="back-link">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Kembali ke Riwayat Pesanan
+    </a>
 
-    <!-- Order Header Card -->
-    <div class="order-header-card">
-        <div class="header-top">
-            <div class="order-title">
-                <h1>Order #{{ order.id }}</h1>
-                <p>Placed on {{ order.created_at|date:"F d, Y" }} at {{ order.created_at|date:"H:i" }}</p>
-            </div>
-            {% if order.status == 'pending' and order.midtrans_transaction_status in 'expire,cancel,deny' %}
-            <span class="order-status-badge status-expired" style="background: #dc3545;">
-                PEMBAYARAN KADALUARSA
-            </span>
-            {% else %}
-            <span class="order-status-badge status-{{ order.status|lower }}">
+    <div class="order-card">
+        <div class="order-header">
+            <h1 class="order-title">Detail Pesanan: {{ order.order_number }}</h1>
+            <span class="order-status status-{{ order.status }}">
                 {{ order.get_status_display }}
             </span>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Order Content Grid -->
-    <div class="order-content">
-        <!-- Main Content -->
-        <div>
-            <!-- Order Items Section -->
-            <div class="section-card">
-                <div class="section-header">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M9 11l3 3L22 4"/>
-                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-                    </svg>
-                    <h2>Order Items</h2>
-                </div>
-                
-                <div class="items-list">
-                    {% for item in order.items.all %}
-                    <div class="order-item">
-                        <div class="item-details">
-                            <h3>{{ item.product_name }}</h3>
-                            <p class="item-price">Rp {{ item.product_price|floatformat:0 }}</p>
-                            <p class="item-price">Quantity: {{ item.quantity }}</p>
-                        </div>
-                        <div class="item-total">
-                            <span class="total-label">Subtotal</span>
-                            <span class="total-value">Rp {{ item.subtotal|floatformat:0 }}</span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <!-- Price Summary -->
-                <div class="price-summary">
-                    <div class="summary-row">
-                        <span class="label">Subtotal:</span>
-                        <span class="value">Rp {{ order.subtotal|floatformat:0 }}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span class="label">Shipping:</span>
-                        <span class="value">Rp {{ order.shipping_cost|floatformat:0 }}</span>
-                    </div>
-                    <div class="summary-row total">
-                        <span class="label">Total:</span>
-                        <span class="value">Rp {{ order.total|floatformat:0 }}</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Shipping Information Section -->
-            <div class="section-card">
-                <div class="section-header">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="1" y="3" width="15" height="13"/>
-                        <path d="M16 8h5l3 3v5h-2m-4 0H2"/>
-                        <circle cx="5.5" cy="18.5" r="2.5"/>
-                        <circle cx="18.5" cy="18.5" r="2.5"/>
-                    </svg>
-                    <h2>Shipping Information</h2>
-                </div>
-                
-                <div class="info-content">
-                    <div class="info-item">
-                        <span class="info-label">Name:</span>
-                        <span class="info-value">{{ order.shipping_name }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Phone:</span>
-                        <span class="info-value">{{ order.shipping_phone }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Address:</span>
-                        <span class="info-value">
-                            {{ order.shipping_address }}<br>
-                            {{ order.shipping_city }}{% if order.shipping_province %}, {{ order.shipping_province }}{% endif %}{% if order.shipping_postal_code %} {{ order.shipping_postal_code }}{% endif %}
-                        </span>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <!-- Sidebar -->
-        <div class="sidebar-section">
-            <!-- Payment Information -->
-            <div class="section-card">
-                <div class="section-header">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                        <line x1="1" y1="10" x2="23" y2="10"/>
-                    </svg>
-                    <h2>Payment Information</h2>
+        <!-- Info Voucher jika ada -->
+        {% if order.voucher_code %}
+        <div class="voucher-info">
+            <strong>🎉 Voucher Terpakai:</strong> 
+            <span class="voucher-code">{{ order.voucher_code }}</span>
+            <br>
+            <small>Anda mendapatkan potongan harga dari voucher</small>
+        </div>
+        {% endif %}
+
+        <div class="order-info-grid">
+            <div class="info-section">
+                <h3>📦 Informasi Pengiriman</h3>
+                <div class="info-row">
+                    <span class="info-label">Nama Penerima:</span>
+                    <span class="info-value">{{ order.shipping_name }}</span>
                 </div>
-                
-                <div class="info-content">
-                    <div class="info-item">
-                        <span class="info-label">METHOD:</span>
-                        <span class="info-value">{{ order.get_payment_method_display }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">STATUS:</span>
-                        {% if order.status == 'pending' and order.midtrans_transaction_status in 'expire,cancel,deny' %}
-                        <span class="order-status-badge status-expired" style="background: #dc3545; display: inline-block; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
-                            PEMBAYARAN KADALUARSA
-                        </span>
+                <div class="info-row">
+                    <span class="info-label">Telepon:</span>
+                    <span class="info-value">{{ order.shipping_phone }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Alamat:</span>
+                    <span class="info-value">{{ order.shipping_address }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Kota:</span>
+                    <span class="info-value">{{ order.shipping_city }}</span>
+                </div>
+                {% if order.shipping_district %}
+                <div class="info-row">
+                    <span class="info-label">Kecamatan:</span>
+                    <span class="info-value">{{ order.shipping_district }}</span>
+                </div>
+                {% endif %}
+                {% if order.shipping_province %}
+                <div class="info-row">
+                    <span class="info-label">Provinsi:</span>
+                    <span class="info-value">{{ order.shipping_province }}</span>
+                </div>
+                {% endif %}
+                {% if order.shipping_postal_code %}
+                <div class="info-row">
+                    <span class="info-label">Kode Pos:</span>
+                    <span class="info-value">{{ order.shipping_postal_code }}</span>
+                </div>
+                {% endif %}
+                <div class="info-row">
+                    <span class="info-label">Jenis Pengiriman:</span>
+                    <span class="info-value">
+                        {% if order.shipping_type == 'express' %}
+                        Express
                         {% else %}
-                        <span class="order-status-badge status-{{ order.status|lower }}" style="display: inline-block; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">
-                            {{ order.get_status_display }}
-                        </span>
+                        Reguler
                         {% endif %}
-                    </div>
-                    {% if order.payment_proof %}
-                    <div class="info-item">
-                        <span class="info-label">Payment Proof:</span>
-                        <a href="{{ order.payment_proof.url }}" target="_blank" class="view-proof">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                <circle cx="12" cy="12" r="3"/>
-                            </svg>
-                            View Proof
-                        </a>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Tombol Pembayaran dan Batalkan -->
-                    {% if order.status == 'pending' %}
-                        {% if order.payment_method == 'midtrans' %}
-                            {% if order.midtrans_transaction_status in 'expire,cancel,deny' %}
-                            <!-- Jika expired, tampilkan tombol Bayar Ulang -->
-                            <div class="info-item" style="margin-top: 20px;">
-                                <a href="{% url 'retry_payment' order_id=order.id %}" class="btn-retry-payment">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                                    </svg>
-                                    Bayar Ulang
-                                </a>
-                                <p style="margin-top: 12px; font-size: 0.85em; color: #666; text-align: center; line-height: 1.4;">
-                                    ⏱️ Waktu pembayaran telah habis.<br>
-                                    Silakan buat transaksi pembayaran baru.
-                                </p>
-                            </div>
-                            {% elif order.midtrans_snap_token %}
-                            <!-- Jika masih aktif, tampilkan tombol Lanjutkan Pembayaran -->
-                            <div class="info-item" style="margin-top: 20px;">
-                                <a href="{% url 'continue_payment' order_id=order.id %}" class="btn-continue-payment">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                                        <line x1="1" y1="10" x2="23" y2="10"/>
-                                    </svg>
-                                    Lanjutkan Pembayaran
-                                </a>
-                            </div>
-                            {% endif %}
-                        {% endif %}
-                        
-                        <!-- ✅ TOMBOL BATALKAN PESANAN -->
-                        <div class="info-item" style="margin-top: 12px;">
-                            <button onclick="confirmCancel()" class="btn-cancel-order">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <line x1="15" y1="9" x2="9" y2="15"/>
-                                    <line x1="9" y1="9" x2="15" y2="15"/>
-                                </svg>
-                                Batalkan Pesanan
-                            </button>
-                        </div>
-                    {% endif %}
+                    </span>
                 </div>
             </div>
 
-            <!-- Order Timeline -->
-            <div class="section-card">
-                <div class="section-header">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    <h2>Order Status</h2>
+            <div class="info-section">
+                <h3>💳 Informasi Pembayaran</h3>
+                <div class="info-row">
+                    <span class="info-label">Metode Pembayaran:</span>
+                    <span class="info-value">{{ order.get_payment_method_display }}</span>
                 </div>
-                
-                <div class="timeline">
-                    <div class="timeline-item {% if order.status in 'pending,paid,processing,shipped,delivered' %}completed{% endif %}">
-                        <div class="timeline-marker"></div>
-                        <div class="timeline-content">
-                            <h4>Order Placed</h4>
-                            <p>{{ order.created_at|date:"d M Y, H:i" }}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-item {% if order.status in 'paid,processing,shipped,delivered' %}completed{% elif order.status == 'pending' and order.midtrans_transaction_status in 'expire,cancel,deny' %}expired{% elif order.status == 'cancelled' %}cancelled{% endif %}">
-                        <div class="timeline-marker"></div>
-                        <div class="timeline-content">
-                            <h4>Payment Confirmed</h4>
-                            {% if order.paid_at %}
-                            <p>{{ order.paid_at|date:"d M Y, H:i" }}</p>
-                            {% elif order.status == 'cancelled' %}
-                            <p style="color: #dc3545; font-weight: 600;">❌ Pesanan dibatalkan</p>
-                            {% elif order.status == 'pending' and order.midtrans_transaction_status in 'expire,cancel,deny' %}
-                            <p style="color: #dc3545; font-weight: 600;">❌ Pembayaran kadaluarsa</p>
-                            {% else %}
-                            <p>Waiting for payment</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-item {% if order.status in 'processing,shipped,delivered' %}completed{% endif %}">
-                        <div class="timeline-marker"></div>
-                        <div class="timeline-content">
-                            <h4>Processing</h4>
-                            <p>Your order is being prepared</p>
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-item {% if order.status in 'shipped,delivered' %}completed{% endif %}">
-                        <div class="timeline-marker"></div>
-                        <div class="timeline-content">
-                            <h4>Shipped</h4>
-                            <p>Your order is on the way</p>
-                        </div>
-                    </div>
-                    
-                    <div class="timeline-item {% if order.status == 'delivered' %}completed{% elif order.status == 'cancelled' %}cancelled{% endif %}">
-                        <div class="timeline-marker"></div>
-                        <div class="timeline-content">
-                            <h4>{% if order.status == 'cancelled' %}Cancelled{% else %}Delivered{% endif %}</h4>
-                            <p>{% if order.status == 'delivered' %}Order completed{% elif order.status == 'cancelled' %}Order cancelled{% else %}Pending delivery{% endif %}</p>
-                        </div>
-                    </div>
+                <div class="info-row">
+                    <span class="info-label">Tanggal Pesanan:</span>
+                    <span class="info-value">{{ order.created_at|indonesian_date }}</span>
                 </div>
+                {% if order.paid_at %}
+                <div class="info-row">
+                    <span class="info-label">Tanggal Dibayar:</span>
+                    <span class="info-value">{{ order.paid_at|indonesian_date }}</span>
+                </div>
+                {% endif %}
+                {% if order.midtrans_transaction_status %}
+                <div class="info-row">
+                    <span class="info-label">Status Midtrans:</span>
+                    <span class="info-value">{{ order.midtrans_transaction_status|title }}</span>
+                </div>
+                {% endif %}
+                {% if order.midtrans_payment_type %}
+                <div class="info-row">
+                    <span class="info-label">Tipe Pembayaran:</span>
+                    <span class="info-value">{{ order.midtrans_payment_type|title }}</span>
+                </div>
+                {% endif %}
             </div>
+        </div>
+
+        <div class="order-items">
+            <h3>🛒 Produk yang Dipesan</h3>
+            {% for item in order.items.all %}
+            <div class="item-card">
+                {% if item.product.get_main_image %}
+                <img src="{{ item.product.get_main_image }}" alt="{{ item.product_name }}" class="item-image">
+                {% else %}
+                <div class="item-image" style="background: #ddd; display: flex; align-items: center; justify-content: center;">
+                    <span style="color: #666; font-size: 12px;">No Image</span>
+                </div>
+                {% endif %}
+                <div class="item-details">
+                    <div class="item-name">{{ item.product_name }}</div>
+                    <div class="item-price">Rp {{ item.product_price|rupiah }} per item</div>
+                    <div class="item-quantity">Jumlah: {{ item.quantity }}</div>
+                </div>
+                <div class="item-subtotal">Rp {{ item.subtotal|rupiah }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="order-summary">
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span>Rp {{ order.subtotal|rupiah }}</span>
+            </div>
+            
+            <!-- Tampilkan potongan voucher jika ada -->
+            {% if order.voucher_discount > 0 %}
+            <div class="summary-row voucher-discount">
+                <span>Potongan Voucher</span>
+                <span>- Rp {{ order.voucher_discount|rupiah }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="summary-row">
+                <span>Ongkos Kirim</span>
+                <span>Rp {{ order.shipping_cost|rupiah }}</span>
+            </div>
+            <div class="summary-row total">
+                <span>Total Pembayaran</span>
+                <span>Rp {{ order.total|rupiah }}</span>
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            {% if order.status == 'pending' and order.payment_method == 'midtrans' %}
+                {% if order.midtrans_snap_token %}
+                <a href="{% url 'midtrans_payment' order.id %}" class="btn btn-primary">
+                    💳 Lanjutkan Pembayaran
+                </a>
+                {% else %}
+                <a href="{% url 'continue_payment' order.id %}" class="btn btn-primary">
+                    💳 Buat Pembayaran
+                </a>
+                {% endif %}
+                <form method="POST" action="{% url 'cancel_order' order.id %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Yakin ingin membatalkan pesanan ini?')">
+                        ❌ Batalkan Pesanan
+                    </button>
+                </form>
+            {% endif %}
+            <a href="{% url 'order_history' %}" class="btn btn-secondary">
+                📋 Kembali ke Riwayat
+            </a>
         </div>
     </div>
 </div>
-
-<!-- ✅ FORM UNTUK BATALKAN PESANAN (HIDDEN) -->
-<form id="cancelOrderForm" method="POST" action="{% url 'cancel_order' order_id=order.id %}" style="display: none;">
-    {% csrf_token %}
-</form>
-
-<style>
-.btn-continue-payment,
-.btn-retry-payment,
-.btn-cancel-order {
-    display: inline-block;
-    width: 100%;
-    padding: 14px 20px;
-    color: white;
-    text-align: center;
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    border: none;
-}
-
-.btn-continue-payment {
-    background: #1f7a1f;
-}
-
-.btn-continue-payment:hover {
-    background: #166316;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(31, 122, 31, 0.3);
-}
-
-.btn-retry-payment {
-    background: #ff9800;
-}
-
-.btn-retry-payment:hover {
-    background: #f57c00;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
-}
-
-/* ✅ STYLE TOMBOL BATALKAN */
-.btn-cancel-order {
-    background: #dc3545;
-}
-
-.btn-cancel-order:hover {
-    background: #c82333;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
-}
-
-.btn-continue-payment svg,
-.btn-retry-payment svg,
-.btn-cancel-order svg {
-    width: 18px;
-    height: 18px;
-    vertical-align: middle;
-    margin-right: 8px;
-    display: inline-block;
-}
-
-.status-expired {
-    background: #dc3545 !important;
-    color: white !important;
-}
-
-.timeline-item.expired .timeline-marker,
-.timeline-item.cancelled .timeline-marker {
-    background: #dc3545;
-    border-color: #dc3545;
-}
-
-.timeline-item.expired .timeline-marker::after,
-.timeline-item.cancelled .timeline-marker::after {
-    background: #dc3545;
-}
-</style>
-
-<script>
-// ✅ KONFIRMASI SEBELUM BATALKAN
-function confirmCancel() {
-    if (confirm('Apakah Anda yakin ingin membatalkan pesanan ini?\n\nStock produk akan dikembalikan ke inventory.')) {
-        document.getElementById('cancelOrderForm').submit();
-    }
-}
-</script>
 {% endblock %}
