@@ -126,7 +126,6 @@
     background: rgba(220, 53, 69, 0.1);
 }
 
-/* Update summary untuk menampilkan discount */
 .discount-row {
     color: #28a745;
 }
@@ -136,7 +135,6 @@
     font-weight: 600;
 }
 
-/* Style untuk shipping cost preview */
 .shipping-cost-preview {
     margin: 15px 0;
 }
@@ -162,7 +160,6 @@
     gap: 4px;
 }
 
-/* Style untuk form help text */
 .form-help {
     display: block;
     margin-top: 5px;
@@ -170,7 +167,6 @@
     color: #6b7280;
 }
 
-/* Style untuk select district */
 #district {
     width: 100%;
     padding: 12px;
@@ -186,7 +182,6 @@
     box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
 }
 
-/* Style untuk shipping type */
 .shipping-type-section {
     margin: 20px 0;
     padding: 20px;
@@ -259,7 +254,6 @@
     color: #4285f4;
 }
 
-/* Style untuk button states */
 .btn-continue {
     width: 100%;
     padding: 15px;
@@ -285,10 +279,112 @@
     transform: none;
 }
 
-/* Style untuk error state */
 .input-error {
     border-color: #e74c3c !important;
     box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1) !important;
+}
+
+/* ✅ STYLE BARU UNTUK SHIPPING METHOD */
+.shipping-method-section {
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fafafa;
+}
+
+.shipping-method-options {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.shipping-method-option {
+    flex: 1;
+    padding: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: white;
+    text-align: center;
+}
+
+.shipping-method-option:hover {
+    border-color: #4285f4;
+}
+
+.shipping-method-option.selected {
+    border-color: #4285f4;
+    background: #f0f7ff;
+}
+
+.shipping-method-option input {
+    display: none;
+}
+
+.shipping-method-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.shipping-method-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #4285f4;
+    border-radius: 50%;
+    color: white;
+}
+
+.shipping-method-details {
+    text-align: center;
+}
+
+.shipping-method-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #333;
+    font-size: 16px;
+}
+
+.shipping-method-desc {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.shipping-method-price {
+    font-weight: 600;
+    color: #28a745;
+    font-size: 18px;
+}
+
+.pickup-info {
+    display: none;
+    padding: 15px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    margin: 15px 0;
+    color: #155724;
+}
+
+.pickup-info.show {
+    display: block;
+}
+
+.pickup-address {
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+.delivery-fields {
+    transition: all 0.3s ease;
 }
 </style>
 {% endblock %}
@@ -324,28 +420,79 @@
                 <form method="POST" id="checkoutForm">
                     {% csrf_token %}
                     
-                    <!-- Hidden inputs untuk selected items (hanya untuk mode cart) -->
+                    <!-- Hidden inputs -->
                     {% if not is_buy_now %}
                         {% for item in cart_items %}
                         <input type="hidden" name="selected_items" value="{{ item.id }}">
                         {% endfor %}
                     {% endif %}
                     
-                    <!-- Hidden input untuk payment method (hanya midtrans) -->
                     <input type="hidden" name="payment_method" value="midtrans">
-                    <input type="hidden" name="shipping_type" id="shippingType" value="reguler">
+                    <input type="hidden" name="shipping_type" id="shippingType" value="{{ shipping_type }}">
+                    <input type="hidden" name="shipping_method" id="shippingMethod" value="{{ shipping_method }}">
                     
+                    <!-- ✅ SECTION METODE PENGIRIMAN BARU -->
+                    <div class="shipping-method-section">
+                        <h2 class="section-title">Metode Pengiriman</h2>
+                        
+                        <div class="shipping-method-options">
+                            <div class="shipping-method-option {% if shipping_method == 'delivery' %}selected{% endif %}" onclick="selectShippingMethod('delivery')">
+                                <input type="radio" name="shipping_method_radio" value="delivery" {% if shipping_method == 'delivery' %}checked{% endif %}>
+                                <div class="shipping-method-content">
+                                    <div class="shipping-method-icon">
+                                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="shipping-method-details">
+                                        <div class="shipping-method-name">Delivery</div>
+                                        <div class="shipping-method-desc">Pesanan dikirim ke alamat Anda</div>
+                                        <div class="shipping-method-price" id="deliveryPrice">Mulai Rp 7.000</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="shipping-method-option {% if shipping_method == 'pickup' %}selected{% endif %}" onclick="selectShippingMethod('pickup')">
+                                <input type="radio" name="shipping_method_radio" value="pickup" {% if shipping_method == 'pickup' %}checked{% endif %}>
+                                <div class="shipping-method-content">
+                                    <div class="shipping-method-icon">
+                                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm0 4c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm6 12H6v-1.4c0-2 4-3.1 6-3.1s6 1.1 6 3.1V19z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="shipping-method-details">
+                                        <div class="shipping-method-name">Pick Up</div>
+                                        <div class="shipping-method-desc">Ambil sendiri di toko</div>
+                                        <div class="shipping-method-price">GRATIS</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Info Pengiriman -->
                     <div class="checkout-section">
                         <h2 class="section-title">Info Pengiriman</h2>
                         
+                        <!-- Pickup Info -->
+                        <div class="pickup-info" id="pickupInfo">
+                            <strong>📍 Ambil Pesanan di Toko:</strong>
+                            <div class="pickup-address">
+                                MancingMo Store<br>
+                                Jl. Perintis Kemerdekaan No. 123<br>
+                                Kecamatan Manggala, Makassar<br>
+                                Sulawesi Selatan 90233<br>
+                                <small>📞 Hubungi: 0812-3456-7890</small>
+                            </div>
+                        </div>
+
                         <div class="login-status">
                             <div>
                                 <p class="status-text">Masuk sebagai</p>
                                 <p class="status-value">{{ user.first_name }} {{ user.last_name }}</p>
                             </div>
                             {% if user_profile.address or default_address %}
-                            <button type="button" class="use-saved-address-btn" onclick="useSavedAddress()">
+                            <button type="button" class="use-saved-address-btn" onclick="useSavedAddress()" id="useSavedAddressBtn">
                                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -356,7 +503,7 @@
                         </div>
 
                         {% if not user_profile.address and not default_address %}
-                        <div class="address-notice">
+                        <div class="address-notice" id="addressNotice">
                             <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
                             </svg>
@@ -376,92 +523,94 @@
                                    value="{% if user_profile.phone %}{{ user_profile.phone }}{% elif default_address %}{{ default_address.phone }}{% endif %}" required>
                         </div>
 
-                        <div class="form-group">
-                            <label for="address">Alamat Lengkap *</label>
-                            <textarea id="address" name="address" rows="3" placeholder="Jl. Contoh No. 123, RT/RW, Kelurahan, Kecamatan" required>{% if user_profile.address %}{{ user_profile.address }}{% elif default_address %}{{ default_address.address }}{% endif %}</textarea>
-                        </div>
-
-                        <div class="form-row">
+                        <!-- Delivery Address Fields -->
+                        <div class="delivery-fields" id="deliveryAddressFields">
                             <div class="form-group">
-                                <label for="city">Kota *</label>
-                                <input type="text" id="city" name="city" placeholder="Contoh: Makassar" 
-                                       value="{% if user_profile.city %}{{ user_profile.city }}{% elif default_address %}{{ default_address.city }}{% endif %}" required readonly style="background-color: #f5f5f5;">
-                                <small class="form-help">Saat ini hanya melayani pengiriman di Makassar</small>
+                                <label for="address">Alamat Lengkap *</label>
+                                <textarea id="address" name="address" rows="3" placeholder="Jl. Contoh No. 123, RT/RW, Kelurahan, Kecamatan">{% if user_profile.address %}{{ user_profile.address }}{% elif default_address %}{{ default_address.address }}{% endif %}</textarea>
                             </div>
-                            <div class="form-group">
-                                <label for="province">Provinsi *</label>
-                                <input type="text" id="province" name="province" placeholder="Contoh: Sulawesi Selatan" 
-                                       value="{% if user_profile.province %}{{ user_profile.province }}{% elif default_address %}{{ default_address.province }}{% endif %}" required readonly style="background-color: #f5f5f5;">
-                            </div>
-                        </div>
 
-                        <!-- ✅ FIELD BARU: DROPDOWN KECAMATAN -->
-                        <div class="form-group">
-                            <label for="district">Kecamatan *</label>
-                            <select id="district" name="district" required onchange="updateShippingCost()">
-                                <option value="">Pilih Kecamatan</option>
-                                {% for kecamatan in kecamatan_list %}
-                                <option value="{{ kecamatan.kecamatan }}" 
-                                        {% if user_profile.district == kecamatan.kecamatan %}selected{% endif %}>
-                                    {{ kecamatan.kecamatan }} - Rp {{ kecamatan.harga|format_currency }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                            <small class="form-help">Pilih kecamatan untuk melihat biaya pengiriman</small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="postal_code">Kode Pos (Opsional)</label>
-                            <input type="text" id="postal_code" name="postal_code" placeholder="90123" 
-                                   value="{% if user_profile.postal_code %}{{ user_profile.postal_code }}{% elif default_address %}{{ default_address.postal_code }}{% endif %}">
-                        </div>
-
-                        <!-- ✅ TAMPILAN BIAYA PENGIRIMAN REAL-TIME -->
-                        <div class="shipping-cost-preview" id="shippingCostPreview" style="display: none;">
-                            <div class="shipping-cost-card">
-                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-                                </svg>
-                                <div>
-                                    <strong>Biaya Pengiriman Reguler:</strong>
-                                    <span id="shippingCostDisplay">Rp 0</span>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="city">Kota *</label>
+                                    <input type="text" id="city" name="city" placeholder="Contoh: Makassar" 
+                                           value="{% if user_profile.city %}{{ user_profile.city }}{% elif default_address %}{{ default_address.city }}{% endif %}" readonly style="background-color: #f5f5f5;">
+                                    <small class="form-help">Saat ini hanya melayani pengiriman di Makassar</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="province">Provinsi *</label>
+                                    <input type="text" id="province" name="province" placeholder="Contoh: Sulawesi Selatan" 
+                                           value="{% if user_profile.province %}{{ user_profile.province }}{% elif default_address %}{{ default_address.province }}{% endif %}" readonly style="background-color: #f5f5f5;">
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- ✅ SECTION JENIS PENGIRIMAN -->
-                        <div class="shipping-type-section" id="shippingTypeSection" style="display: none;">
-                            <h3 class="section-subtitle">Jenis Pengiriman</h3>
-                            
-                            <div class="shipping-options">
-                                <div class="shipping-option selected" onclick="selectShippingType('reguler')">
-                                    <input type="radio" name="shipping_type_radio" value="reguler" checked>
-                                    <div class="shipping-option-content">
-                                        <div class="shipping-option-icon">
-                                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
-                                            </svg>
-                                        </div>
-                                        <div class="shipping-option-details">
-                                            <div class="shipping-option-name">Reguler</div>
-                                            <div class="shipping-option-desc">Estimasi 1-2 hari</div>
-                                            <div class="shipping-option-price" id="regulerPrice">Rp 0</div>
-                                        </div>
+                            <div class="form-group">
+                                <label for="district">Kecamatan *</label>
+                                <select id="district" name="district">
+                                    <option value="">Pilih Kecamatan</option>
+                                    {% for kecamatan in kecamatan_list %}
+                                    <option value="{{ kecamatan.kecamatan }}" 
+                                            {% if user_profile.district == kecamatan.kecamatan %}selected{% endif %}>
+                                        {{ kecamatan.kecamatan }} - Rp {{ kecamatan.harga|format_currency }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-help">Pilih kecamatan untuk melihat biaya pengiriman</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="postal_code">Kode Pos (Opsional)</label>
+                                <input type="text" id="postal_code" name="postal_code" placeholder="90123" 
+                                       value="{% if user_profile.postal_code %}{{ user_profile.postal_code }}{% elif default_address %}{{ default_address.postal_code }}{% endif %}">
+                            </div>
+
+                            <!-- Shipping Cost Preview -->
+                            <div class="shipping-cost-preview" id="shippingCostPreview" style="display: none;">
+                                <div class="shipping-cost-card">
+                                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                                    </svg>
+                                    <div>
+                                        <strong>Biaya Pengiriman Reguler:</strong>
+                                        <span id="shippingCostDisplay">Rp 0</span>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Shipping Type Section -->
+                            <div class="shipping-type-section" id="shippingTypeSection" style="display: none;">
+                                <h3 class="section-subtitle">Jenis Pengiriman</h3>
                                 
-                                <div class="shipping-option" onclick="selectShippingType('express')">
-                                    <input type="radio" name="shipping_type_radio" value="express">
-                                    <div class="shipping-option-content">
-                                        <div class="shipping-option-icon">
-                                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                            </svg>
+                                <div class="shipping-options">
+                                    <div class="shipping-option selected" onclick="selectShippingType('reguler')">
+                                        <input type="radio" name="shipping_type_radio" value="reguler" checked>
+                                        <div class="shipping-option-content">
+                                            <div class="shipping-option-icon">
+                                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                                                </svg>
+                                            </div>
+                                            <div class="shipping-option-details">
+                                                <div class="shipping-option-name">Reguler</div>
+                                                <div class="shipping-option-desc">Estimasi 1-2 hari</div>
+                                                <div class="shipping-option-price" id="regulerPrice">Rp 0</div>
+                                            </div>
                                         </div>
-                                        <div class="shipping-option-details">
-                                            <div class="shipping-option-name">Express</div>
-                                            <div class="shipping-option-desc">Estimasi 3-5 jam</div>
-                                            <div class="shipping-option-price" id="expressPrice">Rp 0</div>
+                                    </div>
+                                    
+                                    <div class="shipping-option" onclick="selectShippingType('express')">
+                                        <input type="radio" name="shipping_type_radio" value="express">
+                                        <div class="shipping-option-content">
+                                            <div class="shipping-option-icon">
+                                                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                                </svg>
+                                            </div>
+                                            <div class="shipping-option-details">
+                                                <div class="shipping-option-name">Express</div>
+                                                <div class="shipping-option-desc">Estimasi 3-5 jam</div>
+                                                <div class="shipping-option-price" id="expressPrice">Rp 0</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -498,7 +647,7 @@
                             {% endif %}
                         </div>
 
-                        <div class="form-checkbox">
+                        <div class="form-checkbox" id="saveAddressCheckbox">
                             <input type="checkbox" id="save_address" name="save_address" value="1">
                             <label for="save_address">Simpan alamat sebagai alamat default untuk pembelian berikutnya</label>
                         </div>
@@ -506,7 +655,7 @@
                         <button type="button" class="btn-continue" onclick="showPayment()">Lanjutkan ke Pembayaran</button>
                     </div>
 
-                    <!-- Pembayaran Section (Hidden by default) -->
+                    <!-- Pembayaran Section -->
                     <div class="checkout-section" id="paymentSection" style="display: none;">
                         <h2 class="section-title">Pembayaran</h2>
                         
@@ -536,7 +685,6 @@
                         <h3 class="payment-method-title">Metode Pembayaran</h3>
 
                         <div class="payment-options">
-                            <!-- ✅ HANYA MIDTRANS -->
                             <div class="payment-option selected">
                                 <div class="payment-card">
                                     <div class="payment-info">
@@ -605,7 +753,7 @@
                         
                         <div class="total-row">
                             <span>Biaya Pengiriman (<span id="summary-shipping-type">Reguler</span>)</span>
-                            <span id="summary-shipping">Pilih kecamatan</span>
+                            <span id="summary-shipping">Pilih metode pengiriman</span>
                         </div>
                         
                         <div class="total-row final">
@@ -620,7 +768,7 @@
 </section>
 
 <script>
-// Data untuk auto-fill - PRIORITAS: UserProfile > Default Address
+// Data untuk auto-fill
 const savedAddressData = {
     full_name: "{% if user_profile.address %}{{ user.first_name }} {{ user.last_name }}{% elif default_address %}{{ default_address.full_name }}{% else %}{{ user.first_name }} {{ user.last_name }}{% endif %}",
     phone: "{% if user_profile.phone %}{{ user_profile.phone }}{% elif default_address %}{{ default_address.phone }}{% endif %}",
@@ -631,7 +779,7 @@ const savedAddressData = {
     postal_code: "{% if user_profile.postal_code %}{{ user_profile.postal_code }}{% elif default_address %}{{ default_address.postal_code }}{% endif %}"
 };
 
-// HARGA ONGKIR HARDCODE - PASTI BERES!
+// HARGA ONGKIR
 const shippingCosts = {
     'Biringkanaya': 12000,
     'Bontoala': 8000,
@@ -650,48 +798,110 @@ const shippingCosts = {
     'Wajo': 9000,
 };
 
-// TAMBAHAN HARGA EXPRESS
 const EXPRESS_SURCHARGE = 10000;
 
-// Function to format number to Rupiah - FIXED VERSION dengan titik
+// Function to format number to Rupiah
 function formatRupiah(number) {
-    // Pastikan number adalah angka
     const num = parseInt(number);
     if (isNaN(num)) {
         return 'Rp 0';
     }
-    
-    // Format dengan separator ribuan menggunakan titik
     return 'Rp ' + num.toLocaleString('id-ID').replace(/,/g, '.');
 }
 
 // Function untuk parse subtotal dari Django template
 function getSubtotal() {
-    // Ambil subtotal dari elemen HTML yang sudah diformat
     const subtotalElement = document.querySelector('.summary-totals .total-row:first-child span:last-child');
     if (subtotalElement) {
         const subtotalText = subtotalElement.textContent.replace(/[^\d]/g, '');
         return parseInt(subtotalText) || 0;
     }
-    
-    // Fallback: parse dari Django template variable
     const djangoSubtotal = parseInt({{ subtotal|default:0 }});
-    console.log('Django subtotal parsed:', djangoSubtotal);
     return djangoSubtotal;
+}
+
+// ✅ FUNCTION BARU: Select Shipping Method
+function selectShippingMethod(method) {
+    // Update radio buttons
+    document.querySelectorAll('.shipping-method-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    document.querySelector(`.shipping-method-option input[value="${method}"]`).parentElement.classList.add('selected');
+    
+    // Update hidden input
+    document.getElementById('shippingMethod').value = method;
+    
+    // Toggle UI elements berdasarkan metode
+    const deliveryFields = document.getElementById('deliveryAddressFields');
+    const pickupInfo = document.getElementById('pickupInfo');
+    const saveAddressCheckbox = document.getElementById('saveAddressCheckbox');
+    const useSavedAddressBtn = document.getElementById('useSavedAddressBtn');
+    const addressNotice = document.getElementById('addressNotice');
+    
+    if (method === 'delivery') {
+        // Show delivery fields
+        deliveryFields.style.display = 'block';
+        pickupInfo.classList.remove('show');
+        
+        // Show address-related elements
+        if (saveAddressCheckbox) saveAddressCheckbox.style.display = 'block';
+        if (useSavedAddressBtn) useSavedAddressBtn.style.display = 'block';
+        if (addressNotice) addressNotice.style.display = 'block';
+        
+        // Reset shipping type to reguler
+        selectShippingType('reguler');
+        
+        // Update shipping cost based on district
+        updateShippingCost();
+    } else {
+        // Hide delivery fields
+        deliveryFields.style.display = 'none';
+        pickupInfo.classList.add('show');
+        
+        // Hide address-related elements
+        if (saveAddressCheckbox) saveAddressCheckbox.style.display = 'none';
+        if (useSavedAddressBtn) useSavedAddressBtn.style.display = 'none';
+        if (addressNotice) addressNotice.style.display = 'none';
+        
+        // Set shipping cost to 0 untuk pickup
+        updateSummaryForPickup();
+    }
+    
+    // Check form validity
+    checkFormValidity();
+}
+
+// ✅ FUNCTION BARU: Update summary untuk pickup
+function updateSummaryForPickup() {
+    const subtotal = getSubtotal();
+    const voucherDiscount = {{ voucher_discount|default:0 }};
+    const total = subtotal - voucherDiscount;
+    
+    // Update summary
+    document.getElementById('summary-shipping-type').textContent = 'Pick Up';
+    document.getElementById('summary-shipping').textContent = 'GRATIS';
+    document.getElementById('summary-total').textContent = formatRupiah(total);
+    
+    // Update payment section jika sudah terbuka
+    const finalShippingCostElem = document.getElementById('finalShippingCost');
+    const finalTotal = document.getElementById('finalTotal');
+    const finalShippingType = document.getElementById('finalShippingType');
+    
+    if (finalShippingCostElem) {
+        finalShippingType.textContent = 'Pick Up';
+        finalShippingCostElem.textContent = 'GRATIS';
+        finalTotal.textContent = formatRupiah(total);
+    }
 }
 
 // Function to select shipping type
 function selectShippingType(type) {
-    // Update radio buttons
     document.querySelectorAll('.shipping-option').forEach(option => {
         option.classList.remove('selected');
     });
     document.querySelector(`.shipping-option input[value="${type}"]`).parentElement.classList.add('selected');
     
-    // Update hidden input
     document.getElementById('shippingType').value = type;
-    
-    // Update shipping cost display
     updateShippingCostDisplay();
 }
 
@@ -701,8 +911,6 @@ function updateShippingCost() {
     const selectedDistrict = districtSelect.value;
     const shippingCostPreview = document.getElementById('shippingCostPreview');
     const shippingTypeSection = document.getElementById('shippingTypeSection');
-    
-    console.log('Selected district:', selectedDistrict);
     
     if (selectedDistrict && shippingCosts[selectedDistrict]) {
         const baseShippingCost = shippingCosts[selectedDistrict];
@@ -718,10 +926,9 @@ function updateShippingCost() {
         document.getElementById('regulerPrice').textContent = formatRupiah(baseShippingCost);
         document.getElementById('expressPrice').textContent = formatRupiah(baseShippingCost + EXPRESS_SURCHARGE);
         
-        // Update summary dengan reguler sebagai default
+        // Update summary
         updateShippingCostDisplay();
         
-        // Enable continue button jika semua field sudah terisi
         checkFormValidity();
     } else {
         shippingCostPreview.style.display = 'none';
@@ -731,7 +938,6 @@ function updateShippingCost() {
         const voucherDiscount = {{ voucher_discount|default:0 }};
         document.getElementById('summary-total').textContent = formatRupiah(subtotal - voucherDiscount);
         
-        // Disable continue button
         const continueBtn = document.querySelector('.btn-continue');
         continueBtn.disabled = true;
         continueBtn.style.opacity = '0.5';
@@ -741,6 +947,13 @@ function updateShippingCost() {
 
 // Function to update shipping cost display based on selected type
 function updateShippingCostDisplay() {
+    const shippingMethod = document.getElementById('shippingMethod').value;
+    
+    if (shippingMethod === 'pickup') {
+        updateSummaryForPickup();
+        return;
+    }
+    
     const districtSelect = document.getElementById('district');
     const selectedDistrict = districtSelect.value;
     const shippingType = document.getElementById('shippingType').value;
@@ -758,8 +971,6 @@ function updateShippingCostDisplay() {
         const subtotal = getSubtotal();
         const voucherDiscount = {{ voucher_discount|default:0 }};
         const total = subtotal + finalShippingCost - voucherDiscount;
-        
-        console.log('Shipping Type:', shippingType, 'Cost:', finalShippingCost, 'Subtotal:', subtotal, 'Total:', total);
         
         // Update summary
         document.getElementById('summary-shipping-type').textContent = shippingTypeName;
@@ -781,13 +992,18 @@ function updateShippingCostDisplay() {
 
 // Function to check form validity
 function checkFormValidity() {
+    const shippingMethod = document.getElementById('shippingMethod').value;
     const fullName = document.getElementById('full_name').value.trim();
     const phone = document.getElementById('phone').value.trim();
-    const address = document.getElementById('address').value.trim();
-    const district = document.getElementById('district').value.trim();
     const continueBtn = document.querySelector('.btn-continue');
     
-    const isValid = fullName && phone && address && district;
+    let isValid = fullName && phone;
+    
+    if (shippingMethod === 'delivery') {
+        const address = document.getElementById('address').value.trim();
+        const district = document.getElementById('district').value.trim();
+        isValid = isValid && address && district;
+    }
     
     if (isValid) {
         continueBtn.disabled = false;
@@ -802,70 +1018,87 @@ function checkFormValidity() {
     return isValid;
 }
 
-// Function to use saved address (from profile or default address)
+// Function to use saved address
 function useSavedAddress() {
+    const shippingMethod = document.getElementById('shippingMethod').value;
+    
     document.getElementById('full_name').value = savedAddressData.full_name || '';
     document.getElementById('phone').value = savedAddressData.phone || '';
-    document.getElementById('address').value = savedAddressData.address || '';
-    document.getElementById('city').value = savedAddressData.city || 'Makassar';
-    document.getElementById('province').value = savedAddressData.province || 'Sulawesi Selatan';
-    document.getElementById('postal_code').value = savedAddressData.postal_code || '';
     
-    // Set district jika ada
-    if (savedAddressData.district) {
-        const districtSelect = document.getElementById('district');
-        for (let i = 0; i < districtSelect.options.length; i++) {
-            if (districtSelect.options[i].value === savedAddressData.district) {
-                districtSelect.selectedIndex = i;
-                break;
+    if (shippingMethod === 'delivery') {
+        document.getElementById('address').value = savedAddressData.address || '';
+        document.getElementById('city').value = savedAddressData.city || 'Makassar';
+        document.getElementById('province').value = savedAddressData.province || 'Sulawesi Selatan';
+        document.getElementById('postal_code').value = savedAddressData.postal_code || '';
+        
+        if (savedAddressData.district) {
+            const districtSelect = document.getElementById('district');
+            for (let i = 0; i < districtSelect.options.length; i++) {
+                if (districtSelect.options[i].value === savedAddressData.district) {
+                    districtSelect.selectedIndex = i;
+                    break;
+                }
             }
+            updateShippingCost();
         }
-        // Trigger update shipping cost
-        updateShippingCost();
+        
+        const notice = document.querySelector('.address-notice');
+        if (notice) {
+            notice.remove();
+        }
     }
     
-    // Check form validity setelah auto-fill
     checkFormValidity();
-    
-    // Remove notice if exists
-    const notice = document.querySelector('.address-notice');
-    if (notice) {
-        notice.remove();
-    }
 }
 
 // Function to show payment section
 function showPayment() {
     const form = document.getElementById('checkoutForm');
-    const requiredFields = form.querySelectorAll('.checkout-section:first-child input[required], .checkout-section:first-child textarea[required], .checkout-section:first-child select[required]');
+    const shippingMethod = document.getElementById('shippingMethod').value;
     
     let isValid = true;
-    requiredFields.forEach(field => {
-        if (!field.value.trim()) {
-            isValid = false;
-            field.style.borderColor = '#e74c3c';
-            field.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-            field.style.borderColor = '#ddd';
-        }
-    });
-
-    // Validasi khusus untuk kecamatan
-    const districtSelect = document.getElementById('district');
-    if (!districtSelect.value) {
+    
+    // Validasi wajib untuk semua metode
+    const fullName = document.getElementById('full_name');
+    const phone = document.getElementById('phone');
+    
+    if (!fullName.value.trim()) {
         isValid = false;
-        districtSelect.style.borderColor = '#e74c3c';
-        districtSelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        fullName.style.borderColor = '#e74c3c';
+        fullName.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    if (!phone.value.trim()) {
+        isValid = false;
+        phone.style.borderColor = '#e74c3c';
+        phone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    // Validasi tambahan untuk delivery
+    if (shippingMethod === 'delivery') {
+        const address = document.getElementById('address');
+        const district = document.getElementById('district');
+        
+        if (!address.value.trim()) {
+            isValid = false;
+            address.style.borderColor = '#e74c3c';
+            address.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        if (!district.value) {
+            isValid = false;
+            district.style.borderColor = '#e74c3c';
+            district.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
     if (isValid) {
         document.getElementById('paymentSection').style.display = 'block';
         document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         
-        // Update final totals di payment section
         updateShippingCostDisplay();
     } else {
-        alert('Mohon lengkapi semua data pengiriman yang wajib diisi termasuk kecamatan!');
+        alert('Mohon lengkapi semua data yang wajib diisi!');
     }
 }
 
@@ -895,7 +1128,6 @@ function applyVoucher() {
     .then(data => {
         if (data.success) {
             showVoucherMessage(data.message, 'success');
-            // Update UI tanpa reload page
             updateTotalsWithVoucher(data.discount_amount, data.voucher);
         } else {
             showVoucherMessage(data.message, 'error');
@@ -922,7 +1154,6 @@ function removeVoucher() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Update UI tanpa reload page
             updateTotalsWithoutVoucher();
             showVoucherMessage(data.message, 'success');
         } else {
@@ -936,8 +1167,14 @@ function removeVoucher() {
 }
 
 function updateTotalsWithVoucher(discountAmount, voucherData) {
+    const shippingMethod = document.getElementById('shippingMethod').value;
     const subtotal = getSubtotal();
-    const shippingCost = getCurrentShippingCost();
+    let shippingCost = 0;
+    
+    if (shippingMethod === 'delivery') {
+        shippingCost = getCurrentShippingCost();
+    }
+    
     const total = subtotal + shippingCost - discountAmount;
     
     // Update voucher section UI
@@ -970,8 +1207,14 @@ function updateTotalsWithVoucher(discountAmount, voucherData) {
 }
 
 function updateTotalsWithoutVoucher() {
+    const shippingMethod = document.getElementById('shippingMethod').value;
     const subtotal = getSubtotal();
-    const shippingCost = getCurrentShippingCost();
+    let shippingCost = 0;
+    
+    if (shippingMethod === 'delivery') {
+        shippingCost = getCurrentShippingCost();
+    }
+    
     const total = subtotal + shippingCost;
     
     // Reset voucher section UI
@@ -994,6 +1237,8 @@ function updateTotalsWithoutVoucher() {
 
 function updateSummaryTotals(subtotal, shippingCost, discountAmount) {
     const total = subtotal + shippingCost - discountAmount;
+    const shippingMethod = document.getElementById('shippingMethod').value;
+    const shippingType = document.getElementById('shippingType').value;
     
     // Update summary section
     document.querySelector('.summary-totals .total-row:first-child span:last-child').textContent = formatRupiah(subtotal);
@@ -1002,7 +1247,6 @@ function updateSummaryTotals(subtotal, shippingCost, discountAmount) {
     let discountRow = document.querySelector('.summary-totals .discount-row');
     if (discountAmount > 0) {
         if (!discountRow) {
-            // Create discount row jika belum ada
             const subtotalRow = document.querySelector('.summary-totals .total-row:first-child');
             discountRow = document.createElement('div');
             discountRow.className = 'total-row discount-row';
@@ -1019,10 +1263,18 @@ function updateSummaryTotals(subtotal, shippingCost, discountAmount) {
     }
     
     // Update shipping
-    const shippingType = document.getElementById('shippingType').value;
-    const shippingTypeName = shippingType === 'express' ? 'Express' : 'Reguler';
+    let shippingTypeName = 'Reguler';
+    if (shippingMethod === 'pickup') {
+        shippingTypeName = 'Pick Up';
+        document.getElementById('summary-shipping').textContent = 'GRATIS';
+    } else {
+        if (shippingType === 'express') {
+            shippingTypeName = 'Express';
+        }
+        document.getElementById('summary-shipping').textContent = formatRupiah(shippingCost);
+    }
+    
     document.getElementById('summary-shipping-type').textContent = shippingTypeName;
-    document.getElementById('summary-shipping').textContent = formatRupiah(shippingCost);
     
     // Update total
     document.getElementById('summary-total').textContent = formatRupiah(total);
@@ -1031,6 +1283,8 @@ function updateSummaryTotals(subtotal, shippingCost, discountAmount) {
 function updatePaymentSectionTotals(subtotal, shippingCost, discountAmount) {
     const total = subtotal + shippingCost - discountAmount;
     const paymentSection = document.getElementById('paymentSection');
+    const shippingMethod = document.getElementById('shippingMethod').value;
+    const shippingType = document.getElementById('shippingType').value;
     
     if (paymentSection.style.display !== 'none') {
         document.querySelector('.payment-summary .summary-row:first-child .amount').textContent = formatRupiah(subtotal);
@@ -1054,12 +1308,29 @@ function updatePaymentSectionTotals(subtotal, shippingCost, discountAmount) {
             paymentDiscountRow.remove();
         }
         
-        document.getElementById('finalShippingCost').textContent = formatRupiah(shippingCost);
+        let shippingTypeName = 'Reguler';
+        if (shippingMethod === 'pickup') {
+            shippingTypeName = 'Pick Up';
+            document.getElementById('finalShippingCost').textContent = 'GRATIS';
+        } else {
+            if (shippingType === 'express') {
+                shippingTypeName = 'Express';
+            }
+            document.getElementById('finalShippingCost').textContent = formatRupiah(shippingCost);
+        }
+        
+        document.getElementById('finalShippingType').textContent = shippingTypeName;
         document.getElementById('finalTotal').textContent = formatRupiah(total);
     }
 }
 
 function getCurrentShippingCost() {
+    const shippingMethod = document.getElementById('shippingMethod').value;
+    
+    if (shippingMethod === 'pickup') {
+        return 0;
+    }
+    
     const districtSelect = document.getElementById('district');
     const selectedDistrict = districtSelect.value;
     const shippingType = document.getElementById('shippingType').value;
@@ -1078,7 +1349,6 @@ function showVoucherMessage(message, type) {
         messageDiv.textContent = message;
         messageDiv.className = `voucher-message ${type}`;
         
-        // Auto-hide success message setelah 3 detik
         if (type === 'success') {
             setTimeout(() => {
                 messageDiv.textContent = '';
@@ -1132,19 +1402,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const voucherDiscount = {{ voucher_discount|default:0 }};
     document.getElementById('summary-total').textContent = formatRupiah(initialSubtotal - voucherDiscount);
     
-    // Trigger update shipping cost if district is pre-selected
-    const districtSelect = document.getElementById('district');
-    if (districtSelect.value) {
-        console.log('District pre-selected:', districtSelect.value);
-        updateShippingCost();
+    // Initialize shipping method UI
+    const initialShippingMethod = '{{ shipping_method }}';
+    selectShippingMethod(initialShippingMethod);
+    
+    // Trigger update shipping cost if district is pre-selected dan method delivery
+    if (initialShippingMethod === 'delivery') {
+        const districtSelect = document.getElementById('district');
+        if (districtSelect.value) {
+            updateShippingCost();
+        }
     }
     
     // Check form validity on load
     checkFormValidity();
     
-    // Debug: Log initial values
     console.log('Initial subtotal calculated:', initialSubtotal);
     console.log('Voucher discount:', voucherDiscount);
+    console.log('Shipping method:', initialShippingMethod);
 });
 </script>
 

@@ -151,7 +151,7 @@ class UserProfile(models.Model):
     address = models.TextField(blank=True, verbose_name="Alamat Lengkap")
     province = models.CharField(max_length=100, blank=True, verbose_name="Provinsi")
     city = models.CharField(max_length=100, blank=True, verbose_name="Kota/Kabupaten")
-    district = models.CharField(max_length=100, blank=True, verbose_name="Kecamatan")  # ✅ FIELD BARU
+    district = models.CharField(max_length=100, blank=True, verbose_name="Kecamatan")
     postal_code = models.CharField(max_length=10, blank=True, verbose_name="Kode Pos")
     bio = models.TextField(blank=True, verbose_name="Bio/Deskripsi")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Dibuat Pada")
@@ -200,7 +200,7 @@ class ShippingAddress(models.Model):
     address = models.TextField(verbose_name="Alamat")
     province = models.CharField(max_length=100, blank=True, verbose_name="Provinsi")
     city = models.CharField(max_length=100, verbose_name="Kota/Kabupaten")
-    district = models.CharField(max_length=100, blank=True, verbose_name="Kecamatan")  # ✅ FIELD BARU
+    district = models.CharField(max_length=100, blank=True, verbose_name="Kecamatan")
     postal_code = models.CharField(max_length=10, blank=True, verbose_name="Kode Pos")
     is_default = models.BooleanField(default=False, verbose_name="Alamat Utama")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Dibuat Pada")
@@ -294,6 +294,7 @@ class Order(models.Model):
         ('shipped', 'Dikirim'),
         ('delivered', 'Terkirim'),
         ('cancelled', 'Dibatalkan'),
+        ('ready_for_pickup', 'Siap Diambil'),
     ]
     
     PAYMENT_CHOICES = [
@@ -301,6 +302,11 @@ class Order(models.Model):
         ('bank_transfer', 'Transfer Bank'),
         ('qris', 'QRIS'),
         ('cod', 'Cash on Delivery'),
+    ]
+
+    SHIPPING_METHODS = [
+        ('delivery', 'Delivery (Dikirim)'),
+        ('pickup', 'Pick Up (Ambil Sendiri)'),
     ]
 
     SHIPPING_TYPES = [
@@ -315,14 +321,22 @@ class Order(models.Model):
     midtrans_transaction_status = models.CharField(max_length=50, blank=True, null=True, verbose_name="Status Transaksi Midtrans")
     midtrans_payment_type = models.CharField(max_length=50, blank=True, null=True, verbose_name="Tipe Pembayaran Midtrans")
     midtrans_snap_token = models.CharField(max_length=255, blank=True, null=True, verbose_name="Snap Token")
+    
+    shipping_method = models.CharField(
+        max_length=20, 
+        choices=SHIPPING_METHODS, 
+        default='delivery',
+        verbose_name="Metode Pengiriman"
+    )
+    
     shipping_name = models.CharField(max_length=200, verbose_name="Nama Penerima")
     shipping_phone = models.CharField(max_length=20, verbose_name="Telepon Penerima")
     shipping_address = models.TextField(verbose_name="Alamat Pengiriman")
     shipping_province = models.CharField(max_length=100, blank=True, verbose_name="Provinsi")
     shipping_city = models.CharField(max_length=100, verbose_name="Kota/Kabupaten")
-    shipping_district = models.CharField(max_length=100, blank=True, verbose_name="Kecamatan")  # ✅ FIELD BARU
+    shipping_district = models.CharField(max_length=100, blank=True, verbose_name="Kecamatan")
     shipping_postal_code = models.CharField(max_length=10, blank=True, verbose_name="Kode Pos")
-    shipping_type = models.CharField(max_length=20, choices=SHIPPING_TYPES,default='reguler')
+    shipping_type = models.CharField(max_length=20, choices=SHIPPING_TYPES, default='reguler')
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, verbose_name="Metode Pembayaran")
     payment_proof = models.ImageField(upload_to='payment_proofs/', blank=True, null=True, verbose_name="Bukti Pembayaran")
     subtotal = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="Subtotal")
@@ -355,7 +369,15 @@ class Order(models.Model):
             else:
                 new_number = 1
             self.order_number = f'ORD-{date_str}-{new_number:05d}'
+        
+        if self.shipping_method == 'pickup' and self.status == 'paid':
+            self.status = 'ready_for_pickup'
+            
         super().save(*args, **kwargs)
+    
+    @property
+    def is_pickup(self):
+        return self.shipping_method == 'pickup'
 
 
 class OrderItem(models.Model):
@@ -404,7 +426,6 @@ class ContactMessage(models.Model):
 # ==================== SHIPPING COST MODEL ====================
 
 class ShippingCost(models.Model):
-    """Model untuk harga ongkir per kecamatan di Makassar"""
     kecamatan = models.CharField(max_length=100, unique=True, verbose_name="Kecamatan")
     harga = models.DecimalField(max_digits=10, decimal_places=0, default=10000, verbose_name="Harga Ongkir")
     is_active = models.BooleanField(default=True, verbose_name="Aktif")
@@ -450,7 +471,6 @@ class Voucher(models.Model):
         return f"{self.code} - {self.discount_value}{'%' if self.discount_type == 'percentage' else ''}"
     
     def is_valid(self, cart_total=0):
-        """Cek apakah voucher valid untuk digunakan"""
         now = timezone.now()
         return (
             self.is_active and
@@ -460,7 +480,6 @@ class Voucher(models.Model):
         )
     
     def calculate_discount(self, cart_total):
-        """Hitung jumlah diskon berdasarkan total cart"""
         if not self.is_valid(cart_total):
             return 0
         
@@ -468,13 +487,12 @@ class Voucher(models.Model):
             discount = (self.discount_value / 100) * cart_total
             if self.max_discount_amount and discount > self.max_discount_amount:
                 discount = self.max_discount_amount
-        else:  # fixed amount
+        else:
             discount = min(self.discount_value, cart_total)
         
         return discount
     
     def use_voucher(self):
-        """Tandai voucher sebagai digunakan"""
         if self.used_count < self.usage_limit:
             self.used_count += 1
             self.save()
@@ -524,7 +542,6 @@ class ProductReview(models.Model):
 # ==================== PROXY MODELS FOR ADMIN SEPARATION ====================
 
 class AdminUser(User):
-    """Proxy model untuk menampilkan hanya Admin/Staff di Django Admin"""
     class Meta:
         proxy = True
         verbose_name = "Admin"
@@ -533,7 +550,6 @@ class AdminUser(User):
 
 
 class CustomerUser(User):
-    """Proxy model untuk menampilkan hanya Customer (non-staff) di Django Admin"""
     class Meta:
         proxy = True
         verbose_name = "User"

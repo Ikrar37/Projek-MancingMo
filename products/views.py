@@ -854,24 +854,20 @@ def buy_now(request, product_id):
 
 @login_required
 def checkout(request):
-    """View untuk halaman checkout - SUPPORT BUY NOW & CART ITEMS DENGAN VOUCHER"""
+    """View untuk halaman checkout - SUPPORT BUY NOW & CART ITEMS DENGAN VOUCHER & PICKUP"""
     
-    # ✅ CEK APAKAH INI DARI BUY NOW
     buy_now_data = request.session.get('buy_now_data')
     is_buy_now = buy_now_data is not None
     
     if is_buy_now:
-        # Mode: Beli Sekarang (langsung dari product detail)
         product = get_object_or_404(Product, id=buy_now_data['product_id'], is_active=True)
         quantity = buy_now_data['quantity']
         
-        # Validasi stock
         if quantity > product.stock:
             messages.error(request, f'Stock {product.name} tidak mencukupi!')
             del request.session['buy_now_data']
             return redirect('product_detail', slug=product.slug)
         
-        # Buat structure yang mirip dengan cart items untuk konsistensi
         class BuyNowItem:
             def __init__(self, product, quantity):
                 self.id = f"buynow_{product.id}"
@@ -885,22 +881,18 @@ def checkout(request):
         cart_total = product.price * quantity
         
     else:
-        # Mode: Checkout dari keranjang
         cart = get_object_or_404(Cart, user=request.user)
         
-        # Validasi cart tidak kosong
         if not cart.items.exists():
             messages.error(request, 'Keranjang Anda kosong!')
             return redirect('cart')
         
-        # Ambil selected items dari POST atau session
         selected_item_ids = request.POST.getlist('selected_items') or request.session.get('selected_items', [])
         
         if not selected_item_ids:
             messages.error(request, 'Pilih minimal 1 produk untuk checkout!')
             return redirect('cart')
         
-        # Filter cart items berdasarkan selected items
         cart_items = cart.items.filter(id__in=selected_item_ids)
         
         if not cart_items.exists():
@@ -909,25 +901,19 @@ def checkout(request):
         
         cart_total = sum(item.get_subtotal() for item in cart_items)
     
-    # Ambil profile user untuk auto-fill
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
-    
-    # Ambil alamat default dari ShippingAddress (jika ada)
     default_address = ShippingAddress.objects.filter(user=request.user, is_default=True).first()
-    
-    # Ambil daftar kecamatan untuk dropdown
     kecamatan_list = ShippingCost.objects.filter(is_active=True).order_by('kecamatan')
     
-    # Hitung shipping cost default (rata-rata)
     from django.db.models import Avg
     default_shipping_cost = ShippingCost.objects.filter(is_active=True).aggregate(
         avg_harga=Avg('harga')
     )['avg_harga'] or Decimal('10000')
     
     shipping_cost = default_shipping_cost
-    shipping_type = 'reguler'  # Default shipping type
-    
-    # ✅ VOUCHER: Get applied voucher from session
+    shipping_type = 'reguler'
+    shipping_method = 'delivery'
+
     applied_voucher = request.session.get('applied_voucher')
     voucher_discount = Decimal(0)
     
@@ -935,7 +921,8 @@ def checkout(request):
         voucher_discount = Decimal(applied_voucher['discount_amount'])
     
     if request.method == 'POST':
-        # Ambil data dari form
+        shipping_method = request.POST.get('shipping_method', 'delivery')
+        
         full_name = request.POST.get('full_name', '').strip()
         phone = request.POST.get('phone', '').strip()
         address = request.POST.get('address', '').strip()
@@ -943,45 +930,55 @@ def checkout(request):
         city = request.POST.get('city', '').strip()
         district = request.POST.get('district', '').strip()
         postal_code = request.POST.get('postal_code', '').strip()
-        payment_method = 'midtrans'  # ✅ HARDCODED ke midtrans
-        shipping_type = request.POST.get('shipping_type', 'reguler')  # ✅ AMBIL SHIPPING TYPE
+        payment_method = 'midtrans'
+        shipping_type = request.POST.get('shipping_type', 'reguler')
         save_address = request.POST.get('save_address')
         
-        # Validasi data wajib
-        if not all([full_name, phone, address, city, district]):
-            messages.error(request, 'Mohon lengkapi semua data wajib termasuk kecamatan!')
-            if not is_buy_now:
-                request.session['selected_items'] = selected_item_ids
-            return redirect('checkout')
+        if shipping_method == 'delivery':
+            if not all([full_name, phone, address, city, district]):
+                messages.error(request, 'Mohon lengkapi semua data pengiriman termasuk kecamatan!')
+                if not is_buy_now:
+                    request.session['selected_items'] = selected_item_ids
+                return redirect('checkout')
+        else:
+            if not all([full_name, phone]):
+                messages.error(request, 'Mohon lengkapi nama dan telepon untuk pickup!')
+                if not is_buy_now:
+                    request.session['selected_items'] = selected_item_ids
+                return redirect('checkout')
+            address = "Ambil di toko - MancingMo Store"
+            city = "Makassar"
+            province = "Sulawesi Selatan"
+            district = "Manggala"
+            postal_code = "90233"
         
-        # Hitung shipping cost berdasarkan kecamatan yang dipilih
-        try:
-            shipping_cost_obj = ShippingCost.objects.get(kecamatan=district, is_active=True)
-            base_shipping_cost = shipping_cost_obj.harga
-            
-            # ✅ TAMBAHKAN BIAYA EXPRESS JIKA DIPILIH
-            if shipping_type == 'express':
-                shipping_cost = base_shipping_cost + Decimal('10000')  # Tambahan Rp 10.000 untuk express
-            else:
-                shipping_cost = base_shipping_cost
+        if shipping_method == 'delivery':
+            try:
+                shipping_cost_obj = ShippingCost.objects.get(kecamatan=district, is_active=True)
+                base_shipping_cost = shipping_cost_obj.harga
                 
-        except ShippingCost.DoesNotExist:
-            # Jika kecamatan tidak ditemukan, gunakan default
-            base_shipping_cost = default_shipping_cost
-            if shipping_type == 'express':
-                shipping_cost = base_shipping_cost + Decimal('10000')
-            else:
-                shipping_cost = base_shipping_cost
-            messages.warning(request, f'Ongkir untuk kecamatan {district} tidak ditemukan, menggunakan tarif default.')
+                if shipping_type == 'express':
+                    shipping_cost = base_shipping_cost + Decimal('10000')
+                else:
+                    shipping_cost = base_shipping_cost
+                    
+            except ShippingCost.DoesNotExist:
+                base_shipping_cost = default_shipping_cost
+                if shipping_type == 'express':
+                    shipping_cost = base_shipping_cost + Decimal('10000')
+                else:
+                    shipping_cost = base_shipping_cost
+                messages.warning(request, f'Ongkir untuk kecamatan {district} tidak ditemukan, menggunakan tarif default.')
+        else:
+            shipping_cost = Decimal('0')
+            shipping_type = 'pickup'
         
-        # ✅ VOUCHER: Validasi minimum purchase untuk voucher
         if applied_voucher and cart_total < Decimal(applied_voucher['min_purchase_amount']):
             messages.error(request, f'Voucher {applied_voucher["code"]} memerlukan minimum pembelian Rp {applied_voucher["min_purchase_amount"]:,.0f}')
             if not is_buy_now:
                 request.session['selected_items'] = selected_item_ids
             return redirect('checkout')
         
-        # Validasi stock sebelum membuat order
         for item in cart_items:
             if item.quantity > item.product.stock:
                 messages.error(request, f'Stock {item.product.name} tidak mencukupi! Tersisa {item.product.stock} item.')
@@ -989,18 +986,16 @@ def checkout(request):
                     request.session['selected_items'] = selected_item_ids
                 return redirect('checkout')
         
-        # Hitung total dengan voucher
         subtotal = cart_total
         total = subtotal + shipping_cost - voucher_discount
         
-        # Pastikan total tidak negatif
         if total < 0:
             total = Decimal(0)
         
         try:
-            # Buat order
             order = Order.objects.create(
                 user=request.user,
+                shipping_method=shipping_method,
                 shipping_name=full_name,
                 shipping_phone=phone,
                 shipping_address=address,
@@ -1009,7 +1004,7 @@ def checkout(request):
                 shipping_district=district,
                 shipping_postal_code=postal_code,
                 payment_method=payment_method,
-                shipping_type=shipping_type,  # ✅ SIMPAN SHIPPING TYPE
+                shipping_type=shipping_type,
                 subtotal=subtotal,
                 shipping_cost=shipping_cost,
                 voucher_discount=voucher_discount,
@@ -1017,17 +1012,15 @@ def checkout(request):
                 status='pending'
             )
             
-            # ✅ VOUCHER: Simpan info voucher jika ada
             if applied_voucher:
                 try:
                     voucher = Voucher.objects.get(code=applied_voucher['code'])
                     order.voucher = voucher
                     order.voucher_code = voucher.code
-                    order.save()  # Simpan dulu sebelum buat order items
+                    order.save()
                 except Voucher.DoesNotExist:
                     pass
             
-            # Buat order items
             for item in cart_items:
                 OrderItem.objects.create(
                     order=order,
@@ -1038,11 +1031,9 @@ def checkout(request):
                     subtotal=item.get_subtotal()
                 )
                 
-                # Kurangi stock produk
                 item.product.stock -= item.quantity
                 item.product.save()
             
-            # ✅ VOUCHER: Gunakan voucher (tambah used_count)
             if applied_voucher:
                 try:
                     voucher = Voucher.objects.get(code=applied_voucher['code'])
@@ -1050,8 +1041,7 @@ def checkout(request):
                 except Voucher.DoesNotExist:
                     pass
             
-            # Simpan alamat jika diminta
-            if save_address:
+            if save_address and shipping_method == 'delivery':
                 ShippingAddress.objects.filter(user=request.user).update(is_default=False)
                 ShippingAddress.objects.create(
                     user=request.user,
@@ -1065,42 +1055,32 @@ def checkout(request):
                     is_default=True
                 )
             
-            # ✅ INTEGRASI MIDTRANS - Langsung create transaction
             from .midtrans_utils import MidtransPayment
             
             midtrans = MidtransPayment()
             result = midtrans.create_transaction(order)
             
             if result['success']:
-                # Simpan snap token ke order
                 order.midtrans_snap_token = result['snap_token']
                 order.midtrans_order_id = order.order_number
                 order.save()
                 
-                # ✅ CLEANUP: Hapus data session
                 if is_buy_now:
-                    # Hapus buy_now_data dari session
                     del request.session['buy_now_data']
                 else:
-                    # Hapus selected cart items
                     CartItem.objects.filter(id__in=selected_item_ids).delete()
-                    # Clear session
                     if 'selected_items' in request.session:
                         del request.session['selected_items']
                 
-                # ✅ VOUCHER: Hapus voucher dari session setelah digunakan
                 if 'applied_voucher' in request.session:
                     del request.session['applied_voucher']
                 
-                # Redirect ke payment page dengan snap token
                 return redirect('midtrans_payment', order_id=order.id)
             else:
-                # Jika gagal membuat transaksi Midtrans, kembalikan stock
                 for item in order.items.all():
                     item.product.stock += item.quantity
                     item.product.save()
                 
-                # ✅ VOUCHER: Kembalikan voucher usage count jika gagal
                 if applied_voucher:
                     try:
                         voucher = Voucher.objects.get(code=applied_voucher['code'])
@@ -1122,7 +1102,6 @@ def checkout(request):
                 request.session['selected_items'] = selected_item_ids
             return redirect('checkout')
     
-    # GET request - tampilkan halaman checkout
     if not is_buy_now and 'selected_items' in request.session and request.method == 'GET':
         del request.session['selected_items']
     
@@ -1132,12 +1111,13 @@ def checkout(request):
         'default_address': default_address,
         'kecamatan_list': kecamatan_list,
         'shipping_cost': shipping_cost,
-        'shipping_type': shipping_type,  # ✅ TAMBAHKAN SHIPPING TYPE KE CONTEXT
+        'shipping_type': shipping_type,
+        'shipping_method': shipping_method,
         'subtotal': cart_total,
         'voucher_discount': voucher_discount,
         'total': cart_total + shipping_cost - voucher_discount,
         'is_buy_now': is_buy_now,
-        'applied_voucher': applied_voucher,  # ✅ VOUCHER: Kirim ke template
+        'applied_voucher': applied_voucher,
     }
     
     return render(request, 'checkout.html', context)
