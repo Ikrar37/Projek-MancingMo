@@ -1,50 +1,75 @@
 from django import template
-from datetime import datetime
+from django.utils import timezone
+import datetime
 
 register = template.Library()
 
-# Dictionary bulan Indonesia
-BULAN_INDONESIA = {
-    1: 'Januari',
-    2: 'Februari', 
-    3: 'Maret',
-    4: 'April',
-    5: 'Mei',
-    6: 'Juni',
-    7: 'Juli',
-    8: 'Agustus',
-    9: 'September',
-    10: 'Oktober',
-    11: 'November',
-    12: 'Desember'
-}
-
-@register.filter(name='bulan_indonesia')
-def bulan_indonesia(value, format_type='F Y'):
+@register.filter
+def indonesian_date(value):
     """
-    Filter untuk mengubah tanggal ke format Indonesia
-    
-    Usage:
-        {{ user.date_joined|bulan_indonesia }}  -> "Oktober 2025"
-        {{ user.date_joined|bulan_indonesia:"d F Y" }}  -> "7 Oktober 2025"
+    Convert datetime to Indonesian date format
+    Example: "13 November 2025"
     """
     if not value:
-        return ''
+        return ""
     
-    if isinstance(value, str):
-        try:
-            value = datetime.strptime(value, '%Y-%m-%d')
-        except:
-            return value
+    # Ensure it's a timezone-aware datetime
+    if timezone.is_naive(value):
+        value = timezone.make_aware(value)
     
-    bulan = BULAN_INDONESIA.get(value.month, '')
+    # Indonesian month names
+    months = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ]
     
-    if format_type == 'F Y':
-        return f"{bulan} {value.year}"
-    elif format_type == 'd F Y':
-        return f"{value.day} {bulan} {value.year}"
-    elif format_type == 'F':
-        return bulan
-    else:
-        # Fallback ke format default
-        return f"{bulan} {value.year}"
+    day = value.day
+    month = months[value.month - 1]
+    year = value.year
+    
+    return f"{day} {month} {year}"
+
+@register.filter
+def indonesian_datetime(value):
+    """
+    Convert datetime to Indonesian datetime format
+    Example: "13 November 2025, 14:30 WITA"
+    """
+    if not value:
+        return ""
+    
+    # Ensure it's a timezone-aware datetime
+    if timezone.is_naive(value):
+        value = timezone.make_aware(value)
+    
+    # Indonesian month names
+    months = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ]
+    
+    day = value.day
+    month = months[value.month - 1]
+    year = value.year
+    hour = value.hour
+    minute = value.minute
+    
+    # Format time
+    time_str = f"{hour:02d}:{minute:02d}"
+    
+    return f"{day} {month} {year}, {time_str} WITA"
+
+@register.filter
+def indonesian_currency(value):
+    """
+    Format number to Indonesian currency format
+    Example: "Rp 1.000.000"
+    """
+    if value is None:
+        return "Rp 0"
+    
+    try:
+        value = int(value)
+        return f"Rp {value:,}".replace(",", ".")
+    except (ValueError, TypeError):
+        return "Rp 0"

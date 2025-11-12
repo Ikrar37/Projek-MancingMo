@@ -617,34 +617,34 @@
                         </div>
 
                         <!-- ✅ SECTION VOUCHER -->
-                        <div class="voucher-section" id="voucherSection">
-                            <h3 class="section-subtitle">Voucher Diskon</h3>
-                            
-                            {% if applied_voucher %}
-                            <div class="applied-voucher">
-                                <div class="voucher-success">
-                                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                                    </svg>
-                                    <div>
-                                        <strong>Voucher {{ applied_voucher.code }} diterapkan!</strong>
-                                        <span>Diskon: Rp {{ applied_voucher.discount_amount|format_currency }}</span>
-                                    </div>
-                                    <button type="button" class="remove-voucher-btn" onclick="removeVoucher()">
-                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                            {% else %}
-                            <div class="voucher-input-group">
-                                <input type="text" id="voucherCode" placeholder="Masukkan kode voucher" maxlength="20">
-                                <button type="button" class="btn-apply-voucher" onclick="applyVoucher()">Terapkan</button>
-                            </div>
-                            <div id="voucherMessage" class="voucher-message"></div>
-                            {% endif %}
-                        </div>
+<div class="voucher-section" id="voucherSection">
+    <h3 class="section-subtitle">Voucher Diskon</h3>
+    
+    {% if applied_voucher %}
+    <div class="applied-voucher">
+        <div class="voucher-success">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+            <div>
+                <strong>Voucher {{ applied_voucher.code }} diterapkan!</strong>
+                <span>Diskon: Rp {{ applied_voucher.discount_amount|format_currency }}</span>
+            </div>
+            <button type="button" class="remove-voucher-btn" onclick="removeVoucher()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <div class="voucher-input-group">
+        <input type="text" id="voucherCode" placeholder="Masukkan kode voucher" maxlength="20" value="">
+        <button type="button" class="btn-apply-voucher" onclick="applyVoucher()">Terapkan</button>
+    </div>
+    <div id="voucherMessage" class="voucher-message"></div>
+    {% endif %}
+</div>
 
                         <div class="form-checkbox" id="saveAddressCheckbox">
                             <input type="checkbox" id="save_address" name="save_address" value="1">
@@ -1423,6 +1423,64 @@ document.querySelectorAll('input, textarea, select').forEach(field => {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Checkout page loaded');
+    
+    // Auto-set city and province to Makassar jika kosong
+    const cityField = document.getElementById('city');
+    const provinceField = document.getElementById('province');
+    
+    if (!cityField.value) cityField.value = 'Makassar';
+    if (!provinceField.value) provinceField.value = 'Sulawesi Selatan';
+    
+    // Set initial summary total
+    const initialSubtotal = getSubtotal();
+    const voucherDiscount = {{ voucher_discount|default:0 }};
+    document.getElementById('summary-total').textContent = formatRupiah(initialSubtotal - voucherDiscount);
+    
+    // Initialize shipping method UI
+    const initialShippingMethod = '{{ shipping_method }}';
+    selectShippingMethod(initialShippingMethod);
+    
+    // Trigger update shipping cost if district is pre-selected dan method delivery
+    if (initialShippingMethod === 'delivery') {
+        const districtSelect = document.getElementById('district');
+        if (districtSelect.value) {
+            // Beri sedikit delay untuk memastikan DOM sudah siap
+            setTimeout(() => {
+                updateShippingCost();
+            }, 500);
+        }
+        
+        // Tambahkan event listener untuk district select
+        districtSelect.addEventListener('change', function() {
+            updateShippingCost();
+        });
+    }
+    
+    // Check form validity on load
+    checkFormValidity();
+    
+    console.log('Initial subtotal calculated:', initialSubtotal);
+    console.log('Voucher discount:', voucherDiscount);
+    console.log('Shipping method:', initialShippingMethod);
+    console.log('Shipping costs data loaded:', shippingCosts);
+});
+
+// Reset voucher input on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Checkout page loaded');
+    
+    // Reset voucher input field
+    const voucherInput = document.getElementById('voucherCode');
+    if (voucherInput) {
+        voucherInput.value = '';
+    }
+    
+    // Clear any voucher messages
+    const voucherMessage = document.getElementById('voucherMessage');
+    if (voucherMessage) {
+        voucherMessage.textContent = '';
+        voucherMessage.className = 'voucher-message';
+    }
     
     // Auto-set city and province to Makassar jika kosong
     const cityField = document.getElementById('city');

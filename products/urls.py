@@ -58,4 +58,7 @@ urlpatterns = [
     # Voucher AJAX routes
     path('checkout/apply-voucher/', views.apply_voucher_ajax, name='apply_voucher_ajax'),
     path('checkout/remove-voucher/', views.remove_voucher_ajax, name='remove_voucher_ajax'),
+
+    # Tambahkan route ini di urlpatterns
+    path('checkout/clear-voucher/', views.clear_voucher, name='clear_voucher'),
 ]
