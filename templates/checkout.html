@@ -66,14 +66,25 @@
     margin-top: 8px;
     font-size: 14px;
     min-height: 20px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-weight: 500;
 }
 
 .voucher-message.success {
-    color: #28a745;
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
 }
 
 .voucher-message.error {
-    color: #dc3545;
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+.voucher-message:empty {
+    display: none;
 }
 
 .applied-voucher {
@@ -458,7 +469,7 @@
                         </div>
 
                         <!-- ✅ SECTION VOUCHER -->
-                        <div class="voucher-section">
+                        <div class="voucher-section" id="voucherSection">
                             <h3 class="section-subtitle">Voucher Diskon</h3>
                             
                             {% if applied_voucher %}
@@ -858,7 +869,7 @@ function showPayment() {
     }
 }
 
-// ✅ VOUCHER FUNCTIONS
+// ✅ VOUCHER FUNCTIONS - TANPA PAGE REFRESH
 function applyVoucher() {
     const voucherCode = document.getElementById('voucherCode').value.trim();
     const messageDiv = document.getElementById('voucherMessage');
@@ -872,7 +883,7 @@ function applyVoucher() {
     btn.disabled = true;
     btn.textContent = 'Memproses...';
     
-    fetch('{% url "apply_voucher" %}', {
+    fetch('{% url "apply_voucher_ajax" %}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -884,10 +895,8 @@ function applyVoucher() {
     .then(data => {
         if (data.success) {
             showVoucherMessage(data.message, 'success');
-            // Reload page to update totals
-            setTimeout(() => {
-                location.reload();
-            }, 1000);
+            // Update UI tanpa reload page
+            updateTotalsWithVoucher(data.discount_amount, data.voucher);
         } else {
             showVoucherMessage(data.message, 'error');
         }
@@ -903,7 +912,7 @@ function applyVoucher() {
 }
 
 function removeVoucher() {
-    fetch('{% url "remove_voucher" %}', {
+    fetch('{% url "remove_voucher_ajax" %}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -913,22 +922,170 @@ function removeVoucher() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Reload page to update totals
-            location.reload();
+            // Update UI tanpa reload page
+            updateTotalsWithoutVoucher();
+            showVoucherMessage(data.message, 'success');
         } else {
-            alert(data.message);
+            showVoucherMessage(data.message, 'error');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Terjadi kesalahan!');
+        showVoucherMessage('Terjadi kesalahan!', 'error');
     });
+}
+
+function updateTotalsWithVoucher(discountAmount, voucherData) {
+    const subtotal = getSubtotal();
+    const shippingCost = getCurrentShippingCost();
+    const total = subtotal + shippingCost - discountAmount;
+    
+    // Update voucher section UI
+    const voucherSection = document.getElementById('voucherSection');
+    voucherSection.innerHTML = `
+        <h3 class="section-subtitle">Voucher Diskon</h3>
+        <div class="applied-voucher">
+            <div class="voucher-success">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                </svg>
+                <div>
+                    <strong>Voucher ${voucherData.code} diterapkan!</strong>
+                    <span>Diskon: ${formatRupiah(discountAmount)}</span>
+                </div>
+                <button type="button" class="remove-voucher-btn" onclick="removeVoucher()">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Update summary totals
+    updateSummaryTotals(subtotal, shippingCost, discountAmount);
+    
+    // Update payment section jika sudah terbuka
+    updatePaymentSectionTotals(subtotal, shippingCost, discountAmount);
+}
+
+function updateTotalsWithoutVoucher() {
+    const subtotal = getSubtotal();
+    const shippingCost = getCurrentShippingCost();
+    const total = subtotal + shippingCost;
+    
+    // Reset voucher section UI
+    const voucherSection = document.getElementById('voucherSection');
+    voucherSection.innerHTML = `
+        <h3 class="section-subtitle">Voucher Diskon</h3>
+        <div class="voucher-input-group">
+            <input type="text" id="voucherCode" placeholder="Masukkan kode voucher" maxlength="20">
+            <button type="button" class="btn-apply-voucher" onclick="applyVoucher()">Terapkan</button>
+        </div>
+        <div id="voucherMessage" class="voucher-message"></div>
+    `;
+    
+    // Update summary totals
+    updateSummaryTotals(subtotal, shippingCost, 0);
+    
+    // Update payment section jika sudah terbuka
+    updatePaymentSectionTotals(subtotal, shippingCost, 0);
+}
+
+function updateSummaryTotals(subtotal, shippingCost, discountAmount) {
+    const total = subtotal + shippingCost - discountAmount;
+    
+    // Update summary section
+    document.querySelector('.summary-totals .total-row:first-child span:last-child').textContent = formatRupiah(subtotal);
+    
+    // Update discount row
+    let discountRow = document.querySelector('.summary-totals .discount-row');
+    if (discountAmount > 0) {
+        if (!discountRow) {
+            // Create discount row jika belum ada
+            const subtotalRow = document.querySelector('.summary-totals .total-row:first-child');
+            discountRow = document.createElement('div');
+            discountRow.className = 'total-row discount-row';
+            discountRow.innerHTML = `
+                <span>Diskon Voucher</span>
+                <span>- ${formatRupiah(discountAmount)}</span>
+            `;
+            subtotalRow.parentNode.insertBefore(discountRow, subtotalRow.nextSibling);
+        } else {
+            discountRow.querySelector('span:last-child').textContent = `- ${formatRupiah(discountAmount)}`;
+        }
+    } else if (discountRow) {
+        discountRow.remove();
+    }
+    
+    // Update shipping
+    const shippingType = document.getElementById('shippingType').value;
+    const shippingTypeName = shippingType === 'express' ? 'Express' : 'Reguler';
+    document.getElementById('summary-shipping-type').textContent = shippingTypeName;
+    document.getElementById('summary-shipping').textContent = formatRupiah(shippingCost);
+    
+    // Update total
+    document.getElementById('summary-total').textContent = formatRupiah(total);
+}
+
+function updatePaymentSectionTotals(subtotal, shippingCost, discountAmount) {
+    const total = subtotal + shippingCost - discountAmount;
+    const paymentSection = document.getElementById('paymentSection');
+    
+    if (paymentSection.style.display !== 'none') {
+        document.querySelector('.payment-summary .summary-row:first-child .amount').textContent = formatRupiah(subtotal);
+        
+        // Update discount in payment section
+        let paymentDiscountRow = document.querySelector('.payment-summary .discount-row');
+        if (discountAmount > 0) {
+            if (!paymentDiscountRow) {
+                const paymentSubtotalRow = document.querySelector('.payment-summary .summary-row:first-child');
+                paymentDiscountRow = document.createElement('div');
+                paymentDiscountRow.className = 'summary-row discount-row';
+                paymentDiscountRow.innerHTML = `
+                    <span>Diskon Voucher</span>
+                    <span class="amount">- ${formatRupiah(discountAmount)}</span>
+                `;
+                paymentSubtotalRow.parentNode.insertBefore(paymentDiscountRow, paymentSubtotalRow.nextSibling);
+            } else {
+                paymentDiscountRow.querySelector('.amount').textContent = `- ${formatRupiah(discountAmount)}`;
+            }
+        } else if (paymentDiscountRow) {
+            paymentDiscountRow.remove();
+        }
+        
+        document.getElementById('finalShippingCost').textContent = formatRupiah(shippingCost);
+        document.getElementById('finalTotal').textContent = formatRupiah(total);
+    }
+}
+
+function getCurrentShippingCost() {
+    const districtSelect = document.getElementById('district');
+    const selectedDistrict = districtSelect.value;
+    const shippingType = document.getElementById('shippingType').value;
+    
+    if (selectedDistrict && shippingCosts[selectedDistrict]) {
+        const baseCost = shippingCosts[selectedDistrict];
+        return shippingType === 'express' ? baseCost + EXPRESS_SURCHARGE : baseCost;
+    }
+    
+    return 0;
 }
 
 function showVoucherMessage(message, type) {
     const messageDiv = document.getElementById('voucherMessage');
-    messageDiv.textContent = message;
-    messageDiv.className = `voucher-message ${type}`;
+    if (messageDiv) {
+        messageDiv.textContent = message;
+        messageDiv.className = `voucher-message ${type}`;
+        
+        // Auto-hide success message setelah 3 detik
+        if (type === 'success') {
+            setTimeout(() => {
+                messageDiv.textContent = '';
+                messageDiv.className = 'voucher-message';
+            }, 3000);
+        }
+    }
 }
 
 // Function to get CSRF token

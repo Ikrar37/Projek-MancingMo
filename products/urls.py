@@ -54,4 +54,8 @@ urlpatterns = [
     path('review/<int:review_id>/delete/', views.delete_review, name='delete_review'),
 
     path('admin/toggle-sidebar/', TemplateView.as_view(template_name='empty.html'), name='toggle_sidebar'),
+
+    # Voucher AJAX routes
+    path('checkout/apply-voucher/', views.apply_voucher_ajax, name='apply_voucher_ajax'),
+    path('checkout/remove-voucher/', views.remove_voucher_ajax, name='remove_voucher_ajax'),
 ]

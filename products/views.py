@@ -1492,3 +1492,143 @@ def remove_voucher(request):
             'success': False,
             'message': f'Terjadi kesalahan: {str(e)}'
         })
+    
+@login_required
+@require_POST
+def apply_voucher_ajax(request):
+    """Apply voucher tanpa page refresh - FIXED VERSION"""
+    import json
+    from decimal import Decimal
+    
+    try:
+        data = json.loads(request.body)
+        voucher_code = data.get('voucher_code', '').strip()
+        
+        print(f"🔍 Mencari voucher: '{voucher_code}'")
+        
+        if not voucher_code:
+            return JsonResponse({
+                'success': False,
+                'message': 'Kode voucher tidak boleh kosong!'
+            })
+        
+        # Get cart total dari session atau hitung manual
+        try:
+            cart = Cart.objects.get(user=request.user)
+            
+            # ✅ HITUNG MANUAL dari selected items di session
+            selected_item_ids = request.session.get('selected_items', [])
+            if selected_item_ids:
+                # Pakai selected items dari session (yang dipilih user di cart)
+                cart_items = cart.items.filter(id__in=selected_item_ids)
+                cart_total = sum(float(item.get_subtotal()) for item in cart_items)
+            else:
+                # Fallback: pakai semua items di cart
+                cart_total = float(cart.get_total())
+                
+            print(f"🛒 Cart total (manual): {cart_total}")
+            print(f"🛒 Selected items: {selected_item_ids}")
+            
+        except Cart.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Keranjang tidak ditemukan!'
+            })
+        
+        # Check voucher
+        try:
+            voucher = Voucher.objects.get(code=voucher_code)
+            print(f"✅ Voucher ditemukan: {voucher.code}")
+        except Voucher.DoesNotExist:
+            try:
+                voucher = Voucher.objects.get(code__iexact=voucher_code)
+                print(f"✅ Voucher ditemukan (case insensitive): {voucher.code}")
+            except Voucher.DoesNotExist:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Kode voucher tidak ditemukan!'
+                })
+        
+        # Debug data
+        print(f"📋 Cart: {cart_total}, Min Purchase: {voucher.min_purchase_amount}")
+        
+        # Cek validitas
+        is_valid = voucher.is_valid(Decimal(cart_total))
+        print(f"🔍 Validitas: {is_valid}")
+        
+        if not is_valid:
+            error_msg = "Voucher tidak valid!"
+            if voucher.valid_from > timezone.now():
+                error_msg = "Voucher belum berlaku!"
+            elif voucher.valid_to < timezone.now():
+                error_msg = "Voucher sudah kadaluarsa!"
+            elif voucher.used_count >= voucher.usage_limit:
+                error_msg = "Voucher sudah habis digunakan!"
+            elif cart_total < float(voucher.min_purchase_amount):
+                error_msg = f"Minimum belanja Rp {int(voucher.min_purchase_amount):,}!"
+            
+            return JsonResponse({
+                'success': False,
+                'message': error_msg
+            })
+        
+        # Calculate discount
+        discount = voucher.calculate_discount(Decimal(cart_total))
+        print(f"💰 Diskon: {discount}")
+        
+        # Store voucher in session
+        request.session['applied_voucher'] = {
+            'code': voucher.code,
+            'discount_type': voucher.discount_type,
+            'discount_value': float(voucher.discount_value),
+            'discount_amount': float(discount),
+            'min_purchase_amount': float(voucher.min_purchase_amount),
+            'max_discount_amount': float(voucher.max_discount_amount) if voucher.max_discount_amount else None
+        }
+        
+        request.session.modified = True
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Voucher {voucher.code} berhasil diterapkan!',
+            'voucher': {
+                'code': voucher.code,
+                'discount_amount': float(discount),
+                'discount_type': voucher.discount_type,
+                'discount_value': float(voucher.discount_value)
+            },
+            'discount_amount': float(discount)
+        })
+            
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        })
+
+@login_required
+@require_POST
+def remove_voucher_ajax(request):
+    """Remove applied voucher tanpa page refresh"""
+    try:
+        if 'applied_voucher' in request.session:
+            voucher_code = request.session['applied_voucher']['code']
+            del request.session['applied_voucher']
+            request.session.modified = True
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Voucher {voucher_code} berhasil dihapus!'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'message': 'Tidak ada voucher yang diterapkan!'
+            })
+            
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Terjadi kesalahan: {str(e)}'
+        })
