@@ -349,95 +349,120 @@ UNFOLD = {
             },
         },
     },
-    "SIDEBAR": {
-        "show_search": True,
-        "show_all_applications": True,
-        "navigation": [
-            {
-                "title": "Dashboard",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Dashboard",
-                        "icon": "dashboard",
-                        "link": lambda request: "/admin/",
-                    },
-                ],
-            },
-            {
-                "title": "Manajemen Produk",
-                "separator": True,
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Kategori",
-                        "icon": "category",
-                        "link": lambda request: "/admin/products/category/",
-                    },
-                    {
-                        "title": "Produk",
-                        "icon": "inventory_2",
-                        "link": lambda request: "/admin/products/product/",
-                    },
-                ],
-            },
-            {
-                "title": "Transaksi",
-                "separator": True,
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Pesanan",
-                        "icon": "shopping_bag",
-                        "link": lambda request: "/admin/products/order/",
-                    },
-                    {
-                        "title": "Keranjang",
-                        "icon": "shopping_cart",
-                        "link": lambda request: "/admin/products/cart/",
-                    },
-                ],
-            },
-            {
-                "title": "Pelanggan",
-                "separator": True,
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": "Admin",
-                        "icon": "admin_panel_settings",
-                        "link": lambda request: "/admin/auth/adminuser/",
-                    },
-                    {
-                        "title": "Customer",
-                        "icon": "people",
-                        "link": lambda request: "/admin/auth/customeruser/",
-                    },
-                    {
-                        "title": "Profile Pengguna",
-                        "icon": "person",
-                        "link": lambda request: "/admin/products/userprofile/",
-                    },
-                    {
-                        "title": "Review",
-                        "icon": "star",
-                        "link": lambda request: "/admin/products/productreview/",
-                    },
-                ],
-            },
-            {
-                "title": "Komunikasi",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Pesan Kontak",
-                        "icon": "email",
-                        "link": lambda request: "/admin/products/contactmessage/",
-                    },
-                ],
-            },
-        ],
-    },
+  "SIDEBAR": {
+    "show_search": True,
+    "show_all_applications": True,
+    "navigation": [
+        {
+            "title": "Dashboard",
+            "separator": True,
+            "items": [
+                {
+                    "title": "Dashboard",
+                    "icon": "dashboard",
+                    "link": lambda request: "/admin/",
+                },
+            ],
+        },
+        {
+            "title": "Manajemen Produk",
+            "separator": True,
+            "collapsible": True,
+            "items": [
+                {
+                    "title": "Kategori",
+                    "icon": "category",
+                    "link": lambda request: "/admin/products/category/",
+                },
+                {
+                    "title": "Produk",
+                    "icon": "inventory_2",
+                    "link": lambda request: "/admin/products/product/",
+                },
+                {
+                    "title": "Gambar Produk",
+                    "icon": "image",
+                    "link": lambda request: "/admin/products/productimage/",
+                },
+                {
+                    "title": "Voucher",
+                    "icon": "local_offer",
+                    "link": lambda request: "/admin/products/voucher/",
+                },
+                {
+                    "title": "Biaya Pengiriman",
+                    "icon": "local_shipping",
+                    "link": lambda request: "/admin/products/shippingcost/",
+                },
+            ],
+        },
+        {
+            "title": "Transaksi",
+            "separator": True,
+            "collapsible": True,
+            "items": [
+                {
+                    "title": "Pesanan",
+                    "icon": "shopping_bag",
+                    "link": lambda request: "/admin/products/order/",
+                },
+                {
+                    "title": "Keranjang",
+                    "icon": "shopping_cart",
+                    "link": lambda request: "/admin/products/cart/",
+                },
+            ],
+        },
+        {
+            "title": "Pelanggan",
+            "separator": True,
+            "collapsible": True,
+            "items": [
+                {
+                    "title": "Admin",
+                    "icon": "admin_panel_settings",
+                    "link": lambda request: "/admin/auth/adminuser/",
+                },
+                {
+                    "title": "Customer",
+                    "icon": "people",
+                    "link": lambda request: "/admin/auth/customeruser/",
+                },
+                {
+                    "title": "Profile Pengguna",
+                    "icon": "person",
+                    "link": lambda request: "/admin/products/userprofile/",
+                },
+                {
+                    "title": "Alamat Pengiriman",
+                    "icon": "location_on",
+                    "link": lambda request: "/admin/products/shippingaddress/",
+                },
+                {
+                    "title": "Review Produk",
+                    "icon": "star",
+                    "link": lambda request: "/admin/products/productreview/",
+                },
+                {
+                    "title": "Verifikasi Email",
+                    "icon": "mark_email_read",
+                    "link": lambda request: "/admin/products/emailverification/",
+                },
+            ],
+        },
+        {
+            "title": "Komunikasi",
+            "separator": True,
+            "items": [
+                {
+                    "title": "Pesan Kontak",
+                    "icon": "email",
+                    "link": lambda request: "/admin/products/contactmessage/",
+                },
+            ],
+        },
+    ],
+},
     "TABS": [
         {
             "models": [
