@@ -137,6 +137,7 @@
 
 .shipping-cost-preview {
     margin: 15px 0;
+    transition: all 0.3s ease;
 }
 
 .shipping-cost-card {
@@ -148,6 +149,14 @@
     border: 1px solid #c3e6cb;
     border-radius: 8px;
     color: #155724;
+    transition: all 0.3s ease;
+}
+
+/* Style untuk express shipping */
+.shipping-cost-card.express {
+    background: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
 }
 
 .shipping-cost-card svg {
@@ -565,12 +574,12 @@
 
                             <!-- Shipping Cost Preview -->
                             <div class="shipping-cost-preview" id="shippingCostPreview" style="display: none;">
-                                <div class="shipping-cost-card">
+                                <div class="shipping-cost-card" id="shippingCostCard">
                                     <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
                                         <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
                                     </svg>
                                     <div>
-                                        <strong>Biaya Pengiriman Reguler:</strong>
+                                        <strong id="shippingCostLabel">Biaya Pengiriman Reguler:</strong>
                                         <span id="shippingCostDisplay">Rp 0</span>
                                     </div>
                                 </div>
@@ -897,19 +906,6 @@ function updateSummaryForPickup() {
     }
 }
 
-// Function to select shipping type
-function selectShippingType(type) {
-    console.log('Selecting shipping type:', type);
-    
-    document.querySelectorAll('.shipping-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-    document.querySelector(`.shipping-option input[value="${type}"]`).parentElement.classList.add('selected');
-    
-    document.getElementById('shippingType').value = type;
-    updateShippingCostDisplay();
-}
-
 // ✅ FUNCTION YANG DIPERBAIKI: Update shipping cost based on selected kecamatan
 function updateShippingCost() {
     const districtSelect = document.getElementById('district');
@@ -925,18 +921,38 @@ function updateShippingCost() {
         
         console.log('Base shipping cost:', baseShippingCost);
         
-        // Update preview
-        document.getElementById('shippingCostDisplay').textContent = formatRupiah(baseShippingCost);
+        // ✅ DIPERBAIKI: Update preview dengan mempertimbangkan jenis pengiriman yang dipilih
+        const shippingType = document.getElementById('shippingType').value;
+        let displayShippingCost = baseShippingCost;
+        let shippingTypeName = 'Reguler';
+        
+        if (shippingType === 'express') {
+            displayShippingCost = baseShippingCost + EXPRESS_SURCHARGE;
+            shippingTypeName = 'Express';
+        }
+        
+        // Update preview card
+        document.getElementById('shippingCostDisplay').textContent = formatRupiah(displayShippingCost);
+        document.getElementById('shippingCostLabel').textContent = `Biaya Pengiriman ${shippingTypeName}:`;
+        
+        // Update style berdasarkan jenis pengiriman
+        const shippingCostCard = document.getElementById('shippingCostCard');
+        if (shippingType === 'express') {
+            shippingCostCard.classList.add('express');
+        } else {
+            shippingCostCard.classList.remove('express');
+        }
+        
         shippingCostPreview.style.display = 'block';
         
-        // Show shipping type section - INI YANG DIPERBAIKI
+        // Show shipping type section
         shippingTypeSection.style.display = 'block';
         
         // Update shipping type prices
         document.getElementById('regulerPrice').textContent = formatRupiah(baseShippingCost);
         document.getElementById('expressPrice').textContent = formatRupiah(baseShippingCost + EXPRESS_SURCHARGE);
         
-        // Update summary - PASTIKAN INI DIPANGGIL
+        // Update summary
         updateShippingCostDisplay();
         
         checkFormValidity();
@@ -991,6 +1007,18 @@ function updateShippingCostDisplay() {
         
         console.log('Final shipping cost:', finalShippingCost, 'Total:', total);
         
+        // ✅ DIPERBAIKI: Update preview card juga
+        document.getElementById('shippingCostDisplay').textContent = formatRupiah(finalShippingCost);
+        document.getElementById('shippingCostLabel').textContent = `Biaya Pengiriman ${shippingTypeName}:`;
+        
+        // Update style berdasarkan jenis pengiriman
+        const shippingCostCard = document.getElementById('shippingCostCard');
+        if (shippingType === 'express') {
+            shippingCostCard.classList.add('express');
+        } else {
+            shippingCostCard.classList.remove('express');
+        }
+        
         // Update summary
         document.getElementById('summary-shipping-type').textContent = shippingTypeName;
         document.getElementById('summary-shipping').textContent = formatRupiah(finalShippingCost);
@@ -1007,6 +1035,21 @@ function updateShippingCostDisplay() {
             finalTotal.textContent = formatRupiah(total);
         }
     }
+}
+
+// ✅ FUNCTION YANG DIPERBAIKI: Select shipping type
+function selectShippingType(type) {
+    console.log('Selecting shipping type:', type);
+    
+    document.querySelectorAll('.shipping-option').forEach(option => {
+        option.classList.remove('selected');
+    });
+    document.querySelector(`.shipping-option input[value="${type}"]`).parentElement.classList.add('selected');
+    
+    document.getElementById('shippingType').value = type;
+    
+    // ✅ DIPERBAIKI: Panggil updateShippingCost() untuk memperbarui preview
+    updateShippingCost();
 }
 
 // Function to check form validity
@@ -1420,52 +1463,7 @@ document.querySelectorAll('input, textarea, select').forEach(field => {
     });
 });
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Checkout page loaded');
-    
-    // Auto-set city and province to Makassar jika kosong
-    const cityField = document.getElementById('city');
-    const provinceField = document.getElementById('province');
-    
-    if (!cityField.value) cityField.value = 'Makassar';
-    if (!provinceField.value) provinceField.value = 'Sulawesi Selatan';
-    
-    // Set initial summary total
-    const initialSubtotal = getSubtotal();
-    const voucherDiscount = {{ voucher_discount|default:0 }};
-    document.getElementById('summary-total').textContent = formatRupiah(initialSubtotal - voucherDiscount);
-    
-    // Initialize shipping method UI
-    const initialShippingMethod = '{{ shipping_method }}';
-    selectShippingMethod(initialShippingMethod);
-    
-    // Trigger update shipping cost if district is pre-selected dan method delivery
-    if (initialShippingMethod === 'delivery') {
-        const districtSelect = document.getElementById('district');
-        if (districtSelect.value) {
-            // Beri sedikit delay untuk memastikan DOM sudah siap
-            setTimeout(() => {
-                updateShippingCost();
-            }, 500);
-        }
-        
-        // Tambahkan event listener untuk district select
-        districtSelect.addEventListener('change', function() {
-            updateShippingCost();
-        });
-    }
-    
-    // Check form validity on load
-    checkFormValidity();
-    
-    console.log('Initial subtotal calculated:', initialSubtotal);
-    console.log('Voucher discount:', voucherDiscount);
-    console.log('Shipping method:', initialShippingMethod);
-    console.log('Shipping costs data loaded:', shippingCosts);
-});
-
-// Reset voucher input on page load
+// ✅ DIPERBAIKI: Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Checkout page loaded');
     
@@ -1497,6 +1495,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize shipping method UI
     const initialShippingMethod = '{{ shipping_method }}';
     selectShippingMethod(initialShippingMethod);
+    
+    // ✅ DIPERBAIKI: Tambahkan event listener untuk shipping type radio buttons
+    document.querySelectorAll('input[name="shipping_type_radio"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            selectShippingType(this.value);
+        });
+    });
     
     // Trigger update shipping cost if district is pre-selected dan method delivery
     if (initialShippingMethod === 'delivery') {
