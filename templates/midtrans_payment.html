@@ -167,6 +167,18 @@
         font-weight: 600;
         color: #2e7d32;
     }
+
+    .order-details {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .order-details strong {
+        color: #856404;
+    }
 </style>
 {% endblock %}
 
@@ -195,39 +207,51 @@
         </div>
         {% endif %}
 
+        <!-- Info Pengiriman -->
+        <div class="order-details">
+            <strong>📦 Info Pengiriman:</strong><br>
+            {{ order.shipping_name }} - {{ order.shipping_phone }}<br>
+            {% if order.shipping_method == 'delivery' %}
+                {{ order.shipping_address }}, {{ order.shipping_district }}, {{ order.shipping_city }}<br>
+                Metode: {{ order.get_shipping_type_display }} - {{ order.get_shipping_method_display }}
+            {% else %}
+                Ambil di Toko - {{ order.get_shipping_method_display }}
+            {% endif %}
+        </div>
+
         <div class="order-info">
             <div class="order-info-row">
                 <span>Subtotal</span>
-                <span>Rp {{ order.subtotal|rupiah }}</span>
+                <span>Rp {{ order.subtotal|format_currency }}</span>
             </div>
             
-            <!-- Tampilkan potongan voucher jika ada -->
+            <!-- ✅ DIPERBAIKI: Tampilkan potongan voucher jika ada -->
             {% if order.voucher_discount > 0 %}
             <div class="order-info-row voucher-discount">
-                <span>Potongan Voucher</span>
-                <span>- Rp {{ order.voucher_discount|rupiah }}</span>
+                <span>Potongan Voucher {% if order.voucher_code %}({{ order.voucher_code }}){% endif %}</span>
+                <span>- Rp {{ order.voucher_discount|format_currency }}</span>
             </div>
             {% endif %}
             
             <div class="order-info-row">
                 <span>Ongkos Kirim</span>
-                <span>Rp {{ order.shipping_cost|rupiah }}</span>
+                <span>Rp {{ order.shipping_cost|format_currency }}</span>
             </div>
             <div class="order-info-row">
                 <span>Total Pembayaran</span>
-                <span>Rp {{ order.total|rupiah }}</span>
+                <span>Rp {{ order.total|format_currency }}</span>
             </div>
         </div>
 
         <button type="button" class="payment-button" id="pay-button" onclick="payNow()">
-            💳 Bayar Sekarang
+            💳 Bayar Sekarang - Rp {{ order.total|format_currency }}
         </button>
 
         <div class="payment-info">
             <h3>📌 Metode Pembayaran Tersedia:</h3>
             <ul>
                 <li>Virtual Account (BCA, BNI, BRI, Mandiri, Permata)</li>
-                <li>E-Wallet (GoPay, ShopeePay)</li>
+                <li>E-Wallet (GoPay, ShopeePay, Dana, OVO)</li>
                 <li>Kartu Kredit/Debit (Visa, MasterCard)</li>
                 <li>QRIS (Scan QR Code)</li>
                 <li>Cicilan 0% (Kartu Kredit tertentu)</li>
@@ -237,6 +261,12 @@
         <div id="loading" class="loading" style="display: none;">
             <div class="loading-spinner"></div>
             <p>Memproses pembayaran...</p>
+        </div>
+
+        <!-- Info tambahan -->
+        <div style="text-align: center; margin-top: 20px; color: #666; font-size: 14px;">
+            <p>🔒 Pembayaran diproses secara aman oleh Midtrans</p>
+            <p>⏰ Selesaikan pembayaran dalam 24 jam</p>
         </div>
     </div>
 </div>
@@ -248,40 +278,78 @@
 </script>
 
 <script type="text/javascript">
+    // ✅ DIPERBAIKI: Function payNow dengan error handling yang lebih baik
     function payNow() {
         const button = document.getElementById('pay-button');
         const loading = document.getElementById('loading');
         
+        // Validasi snap token
+        const snapToken = '{{ snap_token }}';
+        if (!snapToken) {
+            alert('Error: Token pembayaran tidak tersedia. Silakan refresh halaman.');
+            return;
+        }
+        
         button.disabled = true;
-        button.textContent = 'Memproses...';
+        button.textContent = 'Membuka Pembayaran...';
         loading.style.display = 'block';
 
-        snap.pay('{{ snap_token }}', {
+        console.log('Memulai pembayaran dengan token:', snapToken);
+        
+        // Pastikan snap.js sudah loaded
+        if (typeof snap === 'undefined') {
+            alert('Error: Sistem pembayaran belum siap. Silakan refresh halaman.');
+            button.disabled = false;
+            button.textContent = '💳 Bayar Sekarang - Rp {{ order.total|format_currency }}';
+            loading.style.display = 'none';
+            return;
+        }
+        
+        snap.pay(snapToken, {
             onSuccess: function(result) {
                 console.log('Payment success:', result);
-                alert('Pembayaran berhasil!');
+                // Redirect ke halaman sukses
                 window.location.href = '{% url "order_success" order.id %}';
             },
             onPending: function(result) {
                 console.log('Payment pending:', result);
                 alert('Menunggu pembayaran. Silakan selesaikan pembayaran Anda.');
+                // Redirect ke detail order
                 window.location.href = '{% url "order_detail" order.id %}';
             },
             onError: function(result) {
                 console.log('Payment error:', result);
-                alert('Terjadi kesalahan pada pembayaran. Silakan coba lagi.');
-                button.disabled = false;
-                button.textContent = '💳 Bayar Sekarang';
-                loading.style.display = 'none';
+                alert('Terjadi kesalahan pada pembayaran. Silakan coba lagi atau hubungi customer service.');
+                resetButton();
             },
             onClose: function() {
                 console.log('Payment popup closed');
-                alert('Anda menutup halaman pembayaran sebelum menyelesaikan transaksi.');
-                button.disabled = false;
-                button.textContent = '💳 Bayar Sekarang';
-                loading.style.display = 'none';
+                alert('Anda menutup halaman pembayaran sebelum menyelesaikan transaksi. Pesanan Anda masih menunggu pembayaran.');
+                resetButton();
             }
         });
+
+        function resetButton() {
+            button.disabled = false;
+            button.textContent = '💳 Bayar Sekarang - Rp {{ order.total|format_currency }}';
+            loading.style.display = 'none';
+        }
     }
+
+    // ✅ Auto-scroll ke tombol bayar untuk UX yang lebih baik
+    document.addEventListener('DOMContentLoaded', function() {
+        const payButton = document.getElementById('pay-button');
+        if (payButton) {
+            payButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        console.log('Halaman pembayaran loaded');
+        console.log('Order:', {
+            number: '{{ order.order_number }}',
+            total: '{{ order.total }}',
+            voucher: '{{ order.voucher_code }}',
+            discount: '{{ order.voucher_discount }}'
+        });
+    });
 </script>
 {% endblock %}

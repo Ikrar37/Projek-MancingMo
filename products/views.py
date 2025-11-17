@@ -859,6 +859,13 @@ def checkout(request):
     buy_now_data = request.session.get('buy_now_data')
     is_buy_now = buy_now_data is not None
     
+    # ✅ DIPERBAIKI: Ambil applied_voucher dari session di awal fungsi
+    applied_voucher = request.session.get('applied_voucher')
+    voucher_discount = Decimal(0)
+    
+    if applied_voucher:
+        voucher_discount = Decimal(applied_voucher['discount_amount'])
+    
     if is_buy_now:
         product = get_object_or_404(Product, id=buy_now_data['product_id'], is_active=True)
         quantity = buy_now_data['quantity']
@@ -914,12 +921,9 @@ def checkout(request):
     shipping_type = 'reguler'
     shipping_method = 'delivery'
 
-    applied_voucher = request.session.get('applied_voucher')
-    voucher_discount = Decimal(0)
-    
-    if applied_voucher:
-        voucher_discount = Decimal(applied_voucher['discount_amount'])
-    
+    # ✅ DIPERBAIKI: Hapus deklarasi ulang applied_voucher di sini
+    # applied_voucher sudah dideklarasikan di atas
+
     if request.method == 'POST':
         shipping_method = request.POST.get('shipping_method', 'delivery')
         
@@ -973,12 +977,15 @@ def checkout(request):
             shipping_cost = Decimal('0')
             shipping_type = 'pickup'
         
-        if applied_voucher and cart_total < Decimal(applied_voucher['min_purchase_amount']):
-            messages.error(request, f'Voucher {applied_voucher["code"]} memerlukan minimum pembelian Rp {applied_voucher["min_purchase_amount"]:,.0f}')
-            if not is_buy_now:
-                request.session['selected_items'] = selected_item_ids
-            return redirect('checkout')
+        # ✅ DIPERBAIKI: Validasi voucher dengan benar
+        if applied_voucher:
+            if cart_total < Decimal(applied_voucher['min_purchase_amount']):
+                messages.error(request, f'Voucher {applied_voucher["code"]} memerlukan minimum pembelian Rp {applied_voucher["min_purchase_amount"]:,.0f}')
+                if not is_buy_now:
+                    request.session['selected_items'] = selected_item_ids
+                return redirect('checkout')
         
+        # Validasi stock
         for item in cart_items:
             if item.quantity > item.product.stock:
                 messages.error(request, f'Stock {item.product.name} tidak mencukupi! Tersisa {item.product.stock} item.')
@@ -993,6 +1000,7 @@ def checkout(request):
             total = Decimal(0)
         
         try:
+            # ✅ DIPERBAIKI: Buat order dengan data voucher yang benar
             order = Order.objects.create(
                 user=request.user,
                 shipping_method=shipping_method,
@@ -1012,15 +1020,19 @@ def checkout(request):
                 status='pending'
             )
             
+            # ✅ DIPERBAIKI: Simpan data voucher ke order dengan benar
             if applied_voucher:
                 try:
                     voucher = Voucher.objects.get(code=applied_voucher['code'])
                     order.voucher = voucher
                     order.voucher_code = voucher.code
-                    order.save()
+                    order.save()  # Simpan perubahan voucher
                 except Voucher.DoesNotExist:
-                    pass
+                    # Jika voucher tidak ditemukan, tetap simpan kode voucher
+                    order.voucher_code = applied_voucher['code']
+                    order.save()
             
+            # Buat order items
             for item in cart_items:
                 OrderItem.objects.create(
                     order=order,
@@ -1031,16 +1043,19 @@ def checkout(request):
                     subtotal=item.get_subtotal()
                 )
                 
+                # Kurangi stock
                 item.product.stock -= item.quantity
                 item.product.save()
             
+            # ✅ DIPERBAIKI: Gunakan voucher setelah order berhasil dibuat
             if applied_voucher:
                 try:
                     voucher = Voucher.objects.get(code=applied_voucher['code'])
                     voucher.use_voucher()
                 except Voucher.DoesNotExist:
-                    pass
+                    pass  # Jika voucher tidak ditemukan, skip penggunaan
             
+            # Simpan alamat jika diminta
             if save_address and shipping_method == 'delivery':
                 ShippingAddress.objects.filter(user=request.user).update(is_default=False)
                 ShippingAddress.objects.create(
@@ -1055,9 +1070,11 @@ def checkout(request):
                     is_default=True
                 )
             
+            # Buat transaksi Midtrans
             from .midtrans_utils import MidtransPayment
             
             midtrans = MidtransPayment()
+            # ✅ DIPERBAIKI: Kirim total yang sudah termasuk diskon ke Midtrans
             result = midtrans.create_transaction(order)
             
             if result['success']:
@@ -1065,6 +1082,7 @@ def checkout(request):
                 order.midtrans_order_id = order.order_number
                 order.save()
                 
+                # Bersihkan session data
                 if is_buy_now:
                     del request.session['buy_now_data']
                 else:
@@ -1072,15 +1090,18 @@ def checkout(request):
                     if 'selected_items' in request.session:
                         del request.session['selected_items']
                 
+                # ✅ DIPERBAIKI: Hapus voucher dari session SETELAH order berhasil dibuat
                 if 'applied_voucher' in request.session:
                     del request.session['applied_voucher']
                 
                 return redirect('midtrans_payment', order_id=order.id)
             else:
+                # Rollback jika gagal buat transaksi Midtrans
                 for item in order.items.all():
                     item.product.stock += item.quantity
                     item.product.save()
                 
+                # Rollback penggunaan voucher
                 if applied_voucher:
                     try:
                         voucher = Voucher.objects.get(code=applied_voucher['code'])
@@ -1117,7 +1138,7 @@ def checkout(request):
         'voucher_discount': voucher_discount,
         'total': cart_total + shipping_cost - voucher_discount,
         'is_buy_now': is_buy_now,
-        'applied_voucher': applied_voucher,
+        'applied_voucher': applied_voucher,  # ✅ Pastikan ini dikirim ke template
     }
     
     return render(request, 'checkout.html', context)

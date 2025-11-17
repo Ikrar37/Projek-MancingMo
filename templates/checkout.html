@@ -824,104 +824,63 @@ function getSubtotal() {
         const subtotalText = subtotalElement.textContent.replace(/[^\d]/g, '');
         return parseInt(subtotalText) || 0;
     }
-    const djangoSubtotal = parseInt({{ subtotal|default:0 }});
-    return djangoSubtotal;
+    return parseInt({{ subtotal|default:0 }});
 }
+
+// ✅ SIMPLE VOUCHER MANAGEMENT
+let currentVoucher = {% if applied_voucher %}{
+    code: '{{ applied_voucher.code }}',
+    discount_amount: {{ applied_voucher.discount_amount|default:0 }}
+} {% else %} null {% endif %};
 
 // ✅ FUNCTION BARU: Select Shipping Method
 function selectShippingMethod(method) {
-    console.log('Selecting shipping method:', method);
-    
-    // Update radio buttons
     document.querySelectorAll('.shipping-method-option').forEach(option => {
         option.classList.remove('selected');
     });
     document.querySelector(`.shipping-method-option input[value="${method}"]`).parentElement.classList.add('selected');
     
-    // Update hidden input
     document.getElementById('shippingMethod').value = method;
     
-    // Toggle UI elements berdasarkan metode
     const deliveryFields = document.getElementById('deliveryAddressFields');
     const pickupInfo = document.getElementById('pickupInfo');
-    const saveAddressCheckbox = document.getElementById('saveAddressCheckbox');
-    const useSavedAddressBtn = document.getElementById('useSavedAddressBtn');
-    const addressNotice = document.getElementById('addressNotice');
-    const voucherSection = document.getElementById('voucherSection');
     
     if (method === 'delivery') {
-        // Show delivery fields
         deliveryFields.style.display = 'block';
         pickupInfo.classList.remove('show');
-        
-        // Show address-related elements
-        if (saveAddressCheckbox) saveAddressCheckbox.style.display = 'block';
-        if (useSavedAddressBtn) useSavedAddressBtn.style.display = 'block';
-        if (addressNotice) addressNotice.style.display = 'block';
-        if (voucherSection) voucherSection.style.display = 'block';
-        
-        // Reset shipping type to reguler
         selectShippingType('reguler');
-        
-        // Update shipping cost based on district
         updateShippingCost();
     } else {
-        // Hide delivery fields
         deliveryFields.style.display = 'none';
         pickupInfo.classList.add('show');
-        
-        // Hide address-related elements
-        if (saveAddressCheckbox) saveAddressCheckbox.style.display = 'none';
-        if (useSavedAddressBtn) useSavedAddressBtn.style.display = 'none';
-        if (addressNotice) addressNotice.style.display = 'none';
-        
-        // Set shipping cost to 0 untuk pickup
         updateSummaryForPickup();
     }
     
-    // Check form validity
     checkFormValidity();
 }
 
 // ✅ FUNCTION BARU: Update summary untuk pickup
 function updateSummaryForPickup() {
     const subtotal = getSubtotal();
-    const voucherDiscount = {{ voucher_discount|default:0 }};
-    const total = subtotal - voucherDiscount;
+    const discountAmount = currentVoucher ? currentVoucher.discount_amount : 0;
+    const total = subtotal - discountAmount;
     
-    // Update summary
     document.getElementById('summary-shipping-type').textContent = 'Pick Up';
     document.getElementById('summary-shipping').textContent = 'GRATIS';
     document.getElementById('summary-total').textContent = formatRupiah(total);
     
-    // Update payment section jika sudah terbuka
-    const finalShippingCostElem = document.getElementById('finalShippingCost');
-    const finalTotal = document.getElementById('finalTotal');
-    const finalShippingType = document.getElementById('finalShippingType');
-    
-    if (finalShippingCostElem) {
-        finalShippingType.textContent = 'Pick Up';
-        finalShippingCostElem.textContent = 'GRATIS';
-        finalTotal.textContent = formatRupiah(total);
-    }
+    updatePaymentSectionTotals(subtotal, 0, discountAmount);
 }
 
-// ✅ FUNCTION YANG DIPERBAIKI: Update shipping cost based on selected kecamatan
+// ✅ FUNCTION: Update shipping cost
 function updateShippingCost() {
     const districtSelect = document.getElementById('district');
     const selectedDistrict = districtSelect.value;
     const shippingCostPreview = document.getElementById('shippingCostPreview');
     const shippingTypeSection = document.getElementById('shippingTypeSection');
     
-    console.log('Selected district:', selectedDistrict);
-    console.log('Shipping costs data:', shippingCosts);
-    
     if (selectedDistrict && shippingCosts[selectedDistrict]) {
         const baseShippingCost = shippingCosts[selectedDistrict];
-        
-        console.log('Base shipping cost:', baseShippingCost);
-        
-        // ✅ DIPERBAIKI: Update preview dengan mempertimbangkan jenis pengiriman yang dipilih
         const shippingType = document.getElementById('shippingType').value;
         let displayShippingCost = baseShippingCost;
         let shippingTypeName = 'Reguler';
@@ -931,11 +890,9 @@ function updateShippingCost() {
             shippingTypeName = 'Express';
         }
         
-        // Update preview card
         document.getElementById('shippingCostDisplay').textContent = formatRupiah(displayShippingCost);
         document.getElementById('shippingCostLabel').textContent = `Biaya Pengiriman ${shippingTypeName}:`;
         
-        // Update style berdasarkan jenis pengiriman
         const shippingCostCard = document.getElementById('shippingCostCard');
         if (shippingType === 'express') {
             shippingCostCard.classList.add('express');
@@ -944,41 +901,24 @@ function updateShippingCost() {
         }
         
         shippingCostPreview.style.display = 'block';
-        
-        // Show shipping type section
         shippingTypeSection.style.display = 'block';
         
-        // Update shipping type prices
         document.getElementById('regulerPrice').textContent = formatRupiah(baseShippingCost);
         document.getElementById('expressPrice').textContent = formatRupiah(baseShippingCost + EXPRESS_SURCHARGE);
         
-        // Update summary
         updateShippingCostDisplay();
-        
         checkFormValidity();
     } else {
-        console.log('District not found or no shipping cost data');
         shippingCostPreview.style.display = 'none';
         shippingTypeSection.style.display = 'none';
         document.getElementById('summary-shipping').textContent = 'Pilih kecamatan';
-        const subtotal = getSubtotal();
-        const voucherDiscount = {{ voucher_discount|default:0 }};
-        document.getElementById('summary-total').textContent = formatRupiah(subtotal - voucherDiscount);
-        
-        const continueBtn = document.querySelector('.btn-continue');
-        if (continueBtn) {
-            continueBtn.disabled = true;
-            continueBtn.style.opacity = '0.5';
-            continueBtn.style.cursor = 'not-allowed';
-        }
+        updateTotals();
     }
 }
 
-// ✅ FUNCTION YANG DIPERBAIKI: Update shipping cost display based on selected type
+// ✅ FUNCTION: Update shipping cost display
 function updateShippingCostDisplay() {
     const shippingMethod = document.getElementById('shippingMethod').value;
-    
-    console.log('Updating shipping cost display, method:', shippingMethod);
     
     if (shippingMethod === 'pickup') {
         updateSummaryForPickup();
@@ -988,8 +928,6 @@ function updateShippingCostDisplay() {
     const districtSelect = document.getElementById('district');
     const selectedDistrict = districtSelect.value;
     const shippingType = document.getElementById('shippingType').value;
-    
-    console.log('District:', selectedDistrict, 'Type:', shippingType);
     
     if (selectedDistrict && shippingCosts[selectedDistrict]) {
         const baseShippingCost = shippingCosts[selectedDistrict];
@@ -1001,58 +939,32 @@ function updateShippingCostDisplay() {
             shippingTypeName = 'Express';
         }
         
-        const subtotal = getSubtotal();
-        const voucherDiscount = {{ voucher_discount|default:0 }};
-        const total = subtotal + finalShippingCost - voucherDiscount;
+        updateTotals(finalShippingCost);
         
-        console.log('Final shipping cost:', finalShippingCost, 'Total:', total);
-        
-        // ✅ DIPERBAIKI: Update preview card juga
         document.getElementById('shippingCostDisplay').textContent = formatRupiah(finalShippingCost);
         document.getElementById('shippingCostLabel').textContent = `Biaya Pengiriman ${shippingTypeName}:`;
         
-        // Update style berdasarkan jenis pengiriman
         const shippingCostCard = document.getElementById('shippingCostCard');
         if (shippingType === 'express') {
             shippingCostCard.classList.add('express');
         } else {
             shippingCostCard.classList.remove('express');
         }
-        
-        // Update summary
-        document.getElementById('summary-shipping-type').textContent = shippingTypeName;
-        document.getElementById('summary-shipping').textContent = formatRupiah(finalShippingCost);
-        document.getElementById('summary-total').textContent = formatRupiah(total);
-        
-        // Update payment section jika sudah terbuka
-        const finalShippingCostElem = document.getElementById('finalShippingCost');
-        const finalTotal = document.getElementById('finalTotal');
-        const finalShippingType = document.getElementById('finalShippingType');
-        
-        if (finalShippingCostElem) {
-            finalShippingType.textContent = shippingTypeName;
-            finalShippingCostElem.textContent = formatRupiah(finalShippingCost);
-            finalTotal.textContent = formatRupiah(total);
-        }
     }
 }
 
-// ✅ FUNCTION YANG DIPERBAIKI: Select shipping type
+// ✅ FUNCTION: Select shipping type
 function selectShippingType(type) {
-    console.log('Selecting shipping type:', type);
-    
     document.querySelectorAll('.shipping-option').forEach(option => {
         option.classList.remove('selected');
     });
     document.querySelector(`.shipping-option input[value="${type}"]`).parentElement.classList.add('selected');
     
     document.getElementById('shippingType').value = type;
-    
-    // ✅ DIPERBAIKI: Panggil updateShippingCost() untuk memperbarui preview
     updateShippingCost();
 }
 
-// Function to check form validity
+// ✅ FUNCTION: Check form validity
 function checkFormValidity() {
     const shippingMethod = document.getElementById('shippingMethod').value;
     const fullName = document.getElementById('full_name').value.trim();
@@ -1068,21 +980,15 @@ function checkFormValidity() {
     }
     
     if (continueBtn) {
-        if (isValid) {
-            continueBtn.disabled = false;
-            continueBtn.style.opacity = '1';
-            continueBtn.style.cursor = 'pointer';
-        } else {
-            continueBtn.disabled = true;
-            continueBtn.style.opacity = '0.5';
-            continueBtn.style.cursor = 'not-allowed';
-        }
+        continueBtn.disabled = !isValid;
+        continueBtn.style.opacity = isValid ? '1' : '0.5';
+        continueBtn.style.cursor = isValid ? 'pointer' : 'not-allowed';
     }
     
     return isValid;
 }
 
-// Function to use saved address
+// ✅ FUNCTION: Use saved address
 function useSavedAddress() {
     const shippingMethod = document.getElementById('shippingMethod').value;
     
@@ -1103,73 +1009,34 @@ function useSavedAddress() {
                     break;
                 }
             }
-            // PASTIKAN updateShippingCost() DIPANGGIL SETELAH MENGUBAH DISTRICT
-            setTimeout(() => {
-                updateShippingCost();
-            }, 100);
+            setTimeout(() => updateShippingCost(), 100);
         }
         
         const notice = document.querySelector('.address-notice');
-        if (notice) {
-            notice.remove();
-        }
+        if (notice) notice.remove();
     }
     
     checkFormValidity();
 }
 
-// Function to show payment section
+// ✅ FUNCTION: Show payment section
 function showPayment() {
-    const form = document.getElementById('checkoutForm');
-    const shippingMethod = document.getElementById('shippingMethod').value;
-    
-    let isValid = true;
-    
-    // Validasi wajib untuk semua metode
-    const fullName = document.getElementById('full_name');
-    const phone = document.getElementById('phone');
-    
-    if (!fullName.value.trim()) {
-        isValid = false;
-        fullName.classList.add('input-error');
-        fullName.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-    
-    if (!phone.value.trim()) {
-        isValid = false;
-        phone.classList.add('input-error');
-        phone.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-    
-    // Validasi tambahan untuk delivery
-    if (shippingMethod === 'delivery') {
-        const address = document.getElementById('address');
-        const district = document.getElementById('district');
-        
-        if (!address.value.trim()) {
-            isValid = false;
-            address.classList.add('input-error');
-            address.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-        
-        if (!district.value) {
-            isValid = false;
-            district.classList.add('input-error');
-            district.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+    if (!checkFormValidity()) {
+        alert('Mohon lengkapi semua data yang wajib diisi!');
+        return;
     }
 
-    if (isValid) {
-        document.getElementById('paymentSection').style.display = 'block';
-        document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        
-        updateShippingCostDisplay();
-    } else {
-        alert('Mohon lengkapi semua data yang wajib diisi!');
-    }
+    document.getElementById('paymentSection').style.display = 'block';
+    document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    // ✅ PASTIKAN: Update totals sebelum menampilkan payment section
+    const shippingCost = getCurrentShippingCost();
+    const subtotal = getSubtotal();
+    const discountAmount = currentVoucher ? currentVoucher.discount_amount : 0;
+    updatePaymentSectionTotals(subtotal, shippingCost, discountAmount);
 }
 
-// ✅ VOUCHER FUNCTIONS - TANPA PAGE REFRESH
+// ✅ SIMPLE VOUCHER FUNCTIONS
 function applyVoucher() {
     const voucherCode = document.getElementById('voucherCode').value.trim();
     const messageDiv = document.getElementById('voucherMessage');
@@ -1194,8 +1061,13 @@ function applyVoucher() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            currentVoucher = {
+                code: data.voucher.code,
+                discount_amount: data.discount_amount
+            };
             showVoucherMessage(data.message, 'success');
-            updateTotalsWithVoucher(data.discount_amount, data.voucher);
+            updateTotals();
+            updateVoucherUI();
         } else {
             showVoucherMessage(data.message, 'error');
         }
@@ -1221,7 +1093,9 @@ function removeVoucher() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            updateTotalsWithoutVoucher();
+            currentVoucher = null;
+            updateTotals();
+            updateVoucherUI();
             showVoucherMessage(data.message, 'success');
         } else {
             showVoucherMessage(data.message, 'error');
@@ -1233,97 +1107,79 @@ function removeVoucher() {
     });
 }
 
-function updateTotalsWithVoucher(discountAmount, voucherData) {
-    const shippingMethod = document.getElementById('shippingMethod').value;
-    const subtotal = getSubtotal();
-    let shippingCost = 0;
-    
-    if (shippingMethod === 'delivery') {
-        shippingCost = getCurrentShippingCost();
-    }
-    
-    const total = subtotal + shippingCost - discountAmount;
-    
-    // Update voucher section UI
+// ✅ FUNCTION: Update voucher UI
+function updateVoucherUI() {
     const voucherSection = document.getElementById('voucherSection');
-    voucherSection.innerHTML = `
-        <h3 class="section-subtitle">Voucher Diskon</h3>
-        <div class="applied-voucher">
-            <div class="voucher-success">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                </svg>
-                <div>
-                    <strong>Voucher ${voucherData.code} diterapkan!</strong>
-                    <span>Diskon: ${formatRupiah(discountAmount)}</span>
-                </div>
-                <button type="button" class="remove-voucher-btn" onclick="removeVoucher()">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+    
+    if (currentVoucher) {
+        voucherSection.innerHTML = `
+            <h3 class="section-subtitle">Voucher Diskon</h3>
+            <div class="applied-voucher">
+                <div class="voucher-success">
+                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                     </svg>
-                </button>
+                    <div>
+                        <strong>Voucher ${currentVoucher.code} diterapkan!</strong>
+                        <span>Diskon: ${formatRupiah(currentVoucher.discount_amount)}</span>
+                    </div>
+                    <button type="button" class="remove-voucher-btn" onclick="removeVoucher()">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
-        </div>
-    `;
-    
-    // Update summary totals
-    updateSummaryTotals(subtotal, shippingCost, discountAmount);
-    
-    // Update payment section jika sudah terbuka
-    updatePaymentSectionTotals(subtotal, shippingCost, discountAmount);
-}
-
-function updateTotalsWithoutVoucher() {
-    const shippingMethod = document.getElementById('shippingMethod').value;
-    const subtotal = getSubtotal();
-    let shippingCost = 0;
-    
-    if (shippingMethod === 'delivery') {
-        shippingCost = getCurrentShippingCost();
+        `;
+    } else {
+        voucherSection.innerHTML = `
+            <h3 class="section-subtitle">Voucher Diskon</h3>
+            <div class="voucher-input-group">
+                <input type="text" id="voucherCode" placeholder="Masukkan kode voucher" maxlength="20">
+                <button type="button" class="btn-apply-voucher" onclick="applyVoucher()">Terapkan</button>
+            </div>
+            <div id="voucherMessage" class="voucher-message"></div>
+        `;
     }
-    
-    const total = subtotal + shippingCost;
-    
-    // Reset voucher section UI
-    const voucherSection = document.getElementById('voucherSection');
-    voucherSection.innerHTML = `
-        <h3 class="section-subtitle">Voucher Diskon</h3>
-        <div class="voucher-input-group">
-            <input type="text" id="voucherCode" placeholder="Masukkan kode voucher" maxlength="20">
-            <button type="button" class="btn-apply-voucher" onclick="applyVoucher()">Terapkan</button>
-        </div>
-        <div id="voucherMessage" class="voucher-message"></div>
-    `;
-    
-    // Update summary totals
-    updateSummaryTotals(subtotal, shippingCost, 0);
-    
-    // Update payment section jika sudah terbuka
-    updatePaymentSectionTotals(subtotal, shippingCost, 0);
 }
 
+// ✅ FUNCTION: Update all totals
+function updateTotals(shippingCost = null) {
+    const subtotal = getSubtotal();
+    const finalShippingCost = shippingCost !== null ? shippingCost : getCurrentShippingCost();
+    const discountAmount = currentVoucher ? currentVoucher.discount_amount : 0;
+    const total = subtotal + finalShippingCost - discountAmount;
+    
+    updateSummaryTotals(subtotal, finalShippingCost, discountAmount);
+    updatePaymentSectionTotals(subtotal, finalShippingCost, discountAmount);
+}
+
+// ✅ FUNCTION: Update summary totals
 function updateSummaryTotals(subtotal, shippingCost, discountAmount) {
     const total = subtotal + shippingCost - discountAmount;
     const shippingMethod = document.getElementById('shippingMethod').value;
     const shippingType = document.getElementById('shippingType').value;
     
-    // Update summary section
-    document.querySelector('.summary-totals .total-row:first-child span:last-child').textContent = formatRupiah(subtotal);
+    // Update subtotal
+    const subtotalElement = document.querySelector('.summary-totals .total-row:first-child span:last-child');
+    if (subtotalElement) {
+        subtotalElement.textContent = formatRupiah(subtotal);
+    }
     
     // Update discount row
     let discountRow = document.querySelector('.summary-totals .discount-row');
-    if (discountAmount > 0) {
+    if (discountAmount > 0 && currentVoucher) {
         if (!discountRow) {
             const subtotalRow = document.querySelector('.summary-totals .total-row:first-child');
             discountRow = document.createElement('div');
             discountRow.className = 'total-row discount-row';
             discountRow.innerHTML = `
-                <span>Diskon Voucher</span>
+                <span>Diskon Voucher (${currentVoucher.code})</span>
                 <span>- ${formatRupiah(discountAmount)}</span>
             `;
-            subtotalRow.parentNode.insertBefore(discountRow, subtotalRow.nextSibling);
-        } else {
-            discountRow.querySelector('span:last-child').textContent = `- ${formatRupiah(discountAmount)}`;
+            if (subtotalRow && subtotalRow.parentNode) {
+                subtotalRow.parentNode.insertBefore(discountRow, subtotalRow.nextSibling);
+            }
         }
     } else if (discountRow) {
         discountRow.remove();
@@ -1342,11 +1198,10 @@ function updateSummaryTotals(subtotal, shippingCost, discountAmount) {
     }
     
     document.getElementById('summary-shipping-type').textContent = shippingTypeName;
-    
-    // Update total
     document.getElementById('summary-total').textContent = formatRupiah(total);
 }
 
+// ✅ FUNCTION: Update payment section totals
 function updatePaymentSectionTotals(subtotal, shippingCost, discountAmount) {
     const total = subtotal + shippingCost - discountAmount;
     const paymentSection = document.getElementById('paymentSection');
@@ -1354,27 +1209,32 @@ function updatePaymentSectionTotals(subtotal, shippingCost, discountAmount) {
     const shippingType = document.getElementById('shippingType').value;
     
     if (paymentSection.style.display !== 'none') {
-        document.querySelector('.payment-summary .summary-row:first-child .amount').textContent = formatRupiah(subtotal);
+        // Update subtotal
+        const paymentSubtotalElement = document.querySelector('.payment-summary .summary-row:first-child .amount');
+        if (paymentSubtotalElement) {
+            paymentSubtotalElement.textContent = formatRupiah(subtotal);
+        }
         
-        // Update discount in payment section
+        // Update discount
         let paymentDiscountRow = document.querySelector('.payment-summary .discount-row');
-        if (discountAmount > 0) {
+        if (discountAmount > 0 && currentVoucher) {
             if (!paymentDiscountRow) {
                 const paymentSubtotalRow = document.querySelector('.payment-summary .summary-row:first-child');
                 paymentDiscountRow = document.createElement('div');
                 paymentDiscountRow.className = 'summary-row discount-row';
                 paymentDiscountRow.innerHTML = `
-                    <span>Diskon Voucher</span>
+                    <span>Diskon Voucher (${currentVoucher.code})</span>
                     <span class="amount">- ${formatRupiah(discountAmount)}</span>
                 `;
-                paymentSubtotalRow.parentNode.insertBefore(paymentDiscountRow, paymentSubtotalRow.nextSibling);
-            } else {
-                paymentDiscountRow.querySelector('.amount').textContent = `- ${formatRupiah(discountAmount)}`;
+                if (paymentSubtotalRow && paymentSubtotalRow.parentNode) {
+                    paymentSubtotalRow.parentNode.insertBefore(paymentDiscountRow, paymentSubtotalRow.nextSibling);
+                }
             }
         } else if (paymentDiscountRow) {
             paymentDiscountRow.remove();
         }
         
+        // Update shipping
         let shippingTypeName = 'Reguler';
         if (shippingMethod === 'pickup') {
             shippingTypeName = 'Pick Up';
@@ -1441,91 +1301,58 @@ function getCookie(name) {
     return cookieValue;
 }
 
-// Reset border color on input/select change
+// Event listeners
 document.querySelectorAll('input, textarea, select').forEach(field => {
     field.addEventListener('input', function() {
         this.classList.remove('input-error');
         checkFormValidity();
-        
-        // Jika district berubah, update shipping cost
-        if (this.id === 'district') {
-            updateShippingCost();
-        }
+        if (this.id === 'district') updateShippingCost();
     });
     field.addEventListener('change', function() {
         this.classList.remove('input-error');
         checkFormValidity();
-        
-        // Jika district berubah, update shipping cost
-        if (this.id === 'district') {
-            updateShippingCost();
-        }
+        if (this.id === 'district') updateShippingCost();
     });
 });
 
-// ✅ DIPERBAIKI: Initialize on page load
+// ✅ INITIALIZE
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Checkout page loaded');
     
-    // Reset voucher input field
-    const voucherInput = document.getElementById('voucherCode');
-    if (voucherInput) {
-        voucherInput.value = '';
-    }
+    // Initialize voucher UI
+    updateVoucherUI();
     
-    // Clear any voucher messages
-    const voucherMessage = document.getElementById('voucherMessage');
-    if (voucherMessage) {
-        voucherMessage.textContent = '';
-        voucherMessage.className = 'voucher-message';
-    }
-    
-    // Auto-set city and province to Makassar jika kosong
+    // Auto-set city and province
     const cityField = document.getElementById('city');
     const provinceField = document.getElementById('province');
-    
     if (!cityField.value) cityField.value = 'Makassar';
     if (!provinceField.value) provinceField.value = 'Sulawesi Selatan';
     
-    // Set initial summary total
-    const initialSubtotal = getSubtotal();
-    const voucherDiscount = {{ voucher_discount|default:0 }};
-    document.getElementById('summary-total').textContent = formatRupiah(initialSubtotal - voucherDiscount);
-    
-    // Initialize shipping method UI
+    // Initialize shipping method
     const initialShippingMethod = '{{ shipping_method }}';
     selectShippingMethod(initialShippingMethod);
     
-    // ✅ DIPERBAIKI: Tambahkan event listener untuk shipping type radio buttons
+    // Add event listeners
     document.querySelectorAll('input[name="shipping_type_radio"]').forEach(radio => {
         radio.addEventListener('change', function() {
             selectShippingType(this.value);
         });
     });
     
-    // Trigger update shipping cost if district is pre-selected dan method delivery
+    // Initialize shipping cost if delivery
     if (initialShippingMethod === 'delivery') {
         const districtSelect = document.getElementById('district');
         if (districtSelect.value) {
-            // Beri sedikit delay untuk memastikan DOM sudah siap
-            setTimeout(() => {
-                updateShippingCost();
-            }, 500);
+            setTimeout(() => updateShippingCost(), 500);
         }
-        
-        // Tambahkan event listener untuk district select
         districtSelect.addEventListener('change', function() {
             updateShippingCost();
         });
     }
     
-    // Check form validity on load
+    // Initial totals update
+    updateTotals();
     checkFormValidity();
-    
-    console.log('Initial subtotal calculated:', initialSubtotal);
-    console.log('Voucher discount:', voucherDiscount);
-    console.log('Shipping method:', initialShippingMethod);
-    console.log('Shipping costs data loaded:', shippingCosts);
 });
 </script>
 
