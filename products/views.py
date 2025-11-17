@@ -917,7 +917,7 @@ def checkout(request):
         avg_harga=Avg('harga')
     )['avg_harga'] or Decimal('10000')
     
-    shipping_cost = default_shipping_cost
+    shipping_cost = Decimal('0')  # ✅ DIUBAH: Kosongkan shipping cost awal
     shipping_type = 'reguler'
     shipping_method = 'delivery'
 
@@ -1126,12 +1126,13 @@ def checkout(request):
     if not is_buy_now and 'selected_items' in request.session and request.method == 'GET':
         del request.session['selected_items']
     
+    # ✅ DIPERBAIKI: Kosongkan data alamat di context
     context = {
         'cart_items': cart_items,
         'user_profile': user_profile,
         'default_address': default_address,
         'kecamatan_list': kecamatan_list,
-        'shipping_cost': shipping_cost,
+        'shipping_cost': shipping_cost,  # Awalnya 0
         'shipping_type': shipping_type,
         'shipping_method': shipping_method,
         'subtotal': cart_total,

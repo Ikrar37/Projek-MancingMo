@@ -395,6 +395,31 @@
 .delivery-fields {
     transition: all 0.3s ease;
 }
+
+/* Style untuk tombol Gunakan Alamat Default */
+.use-saved-address-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.use-saved-address-btn:hover {
+    background: #3367d6;
+    transform: translateY(-1px);
+}
+
+.use-saved-address-btn:active {
+    transform: translateY(0);
+}
 </style>
 {% endblock %}
 
@@ -519,36 +544,33 @@
                         </div>
                         {% endif %}
 
+                        <!-- ✅ DIPERBAIKI: Form fields KOSONG awalnya -->
                         <div class="form-group">
                             <label for="full_name">Nama Lengkap *</label>
-                            <input type="text" id="full_name" name="full_name" placeholder="Masukkan nama lengkap" 
-                                   value="{% if user_profile.address %}{{ user.first_name }} {{ user.last_name }}{% elif default_address %}{{ default_address.full_name }}{% else %}{{ user.first_name }} {{ user.last_name }}{% endif %}" required>
+                            <input type="text" id="full_name" name="full_name" placeholder="Masukkan nama lengkap" value="" required>
                         </div>
 
                         <div class="form-group">
                             <label for="phone">Nomor Telepon *</label>
-                            <input type="tel" id="phone" name="phone" placeholder="Contoh: 08123456789" 
-                                   value="{% if user_profile.phone %}{{ user_profile.phone }}{% elif default_address %}{{ default_address.phone }}{% endif %}" required>
+                            <input type="tel" id="phone" name="phone" placeholder="Contoh: 08123456789" value="" required>
                         </div>
 
                         <!-- Delivery Address Fields -->
                         <div class="delivery-fields" id="deliveryAddressFields">
                             <div class="form-group">
                                 <label for="address">Alamat Lengkap *</label>
-                                <textarea id="address" name="address" rows="3" placeholder="Jl. Contoh No. 123, RT/RW, Kelurahan, Kecamatan">{% if user_profile.address %}{{ user_profile.address }}{% elif default_address %}{{ default_address.address }}{% endif %}</textarea>
+                                <textarea id="address" name="address" rows="3" placeholder="Jl. Contoh No. 123, RT/RW, Kelurahan, Kecamatan"></textarea>
                             </div>
 
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="city">Kota *</label>
-                                    <input type="text" id="city" name="city" placeholder="Contoh: Makassar" 
-                                           value="{% if user_profile.city %}{{ user_profile.city }}{% elif default_address %}{{ default_address.city }}{% endif %}" readonly style="background-color: #f5f5f5;">
+                                    <input type="text" id="city" name="city" placeholder="Contoh: Makassar" value="" readonly style="background-color: #f5f5f5;">
                                     <small class="form-help">Saat ini hanya melayani pengiriman di Makassar</small>
                                 </div>
                                 <div class="form-group">
                                     <label for="province">Provinsi *</label>
-                                    <input type="text" id="province" name="province" placeholder="Contoh: Sulawesi Selatan" 
-                                           value="{% if user_profile.province %}{{ user_profile.province }}{% elif default_address %}{{ default_address.province }}{% endif %}" readonly style="background-color: #f5f5f5;">
+                                    <input type="text" id="province" name="province" placeholder="Contoh: Sulawesi Selatan" value="" readonly style="background-color: #f5f5f5;">
                                 </div>
                             </div>
 
@@ -557,8 +579,7 @@
                                 <select id="district" name="district">
                                     <option value="">Pilih Kecamatan</option>
                                     {% for kecamatan in kecamatan_list %}
-                                    <option value="{{ kecamatan.kecamatan }}" 
-                                            {% if user_profile.district == kecamatan.kecamatan %}selected{% endif %}>
+                                    <option value="{{ kecamatan.kecamatan }}">
                                         {{ kecamatan.kecamatan }} - Rp {{ kecamatan.harga|format_currency }}
                                     </option>
                                     {% endfor %}
@@ -568,8 +589,7 @@
 
                             <div class="form-group">
                                 <label for="postal_code">Kode Pos (Opsional)</label>
-                                <input type="text" id="postal_code" name="postal_code" placeholder="90123" 
-                                       value="{% if user_profile.postal_code %}{{ user_profile.postal_code }}{% elif default_address %}{{ default_address.postal_code }}{% endif %}">
+                                <input type="text" id="postal_code" name="postal_code" placeholder="90123" value="">
                             </div>
 
                             <!-- Shipping Cost Preview -->
@@ -626,34 +646,34 @@
                         </div>
 
                         <!-- ✅ SECTION VOUCHER -->
-<div class="voucher-section" id="voucherSection">
-    <h3 class="section-subtitle">Voucher Diskon</h3>
-    
-    {% if applied_voucher %}
-    <div class="applied-voucher">
-        <div class="voucher-success">
-            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-            </svg>
-            <div>
-                <strong>Voucher {{ applied_voucher.code }} diterapkan!</strong>
-                <span>Diskon: Rp {{ applied_voucher.discount_amount|format_currency }}</span>
-            </div>
-            <button type="button" class="remove-voucher-btn" onclick="removeVoucher()">
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-    </div>
-    {% else %}
-    <div class="voucher-input-group">
-        <input type="text" id="voucherCode" placeholder="Masukkan kode voucher" maxlength="20" value="">
-        <button type="button" class="btn-apply-voucher" onclick="applyVoucher()">Terapkan</button>
-    </div>
-    <div id="voucherMessage" class="voucher-message"></div>
-    {% endif %}
-</div>
+                        <div class="voucher-section" id="voucherSection">
+                            <h3 class="section-subtitle">Voucher Diskon</h3>
+                            
+                            {% if applied_voucher %}
+                            <div class="applied-voucher">
+                                <div class="voucher-success">
+                                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                                    </svg>
+                                    <div>
+                                        <strong>Voucher {{ applied_voucher.code }} diterapkan!</strong>
+                                        <span>Diskon: Rp {{ applied_voucher.discount_amount|format_currency }}</span>
+                                    </div>
+                                    <button type="button" class="remove-voucher-btn" onclick="removeVoucher()">
+                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="voucher-input-group">
+                                <input type="text" id="voucherCode" placeholder="Masukkan kode voucher" maxlength="20" value="">
+                                <button type="button" class="btn-apply-voucher" onclick="applyVoucher()">Terapkan</button>
+                            </div>
+                            <div id="voucherMessage" class="voucher-message"></div>
+                            {% endif %}
+                        </div>
 
                         <div class="form-checkbox" id="saveAddressCheckbox">
                             <input type="checkbox" id="save_address" name="save_address" value="1">
@@ -776,9 +796,9 @@
 </section>
 
 <script>
-// Data untuk auto-fill
+// ✅ DIPERBAIKI: Data untuk auto-fill - Kosongkan nilai default
 const savedAddressData = {
-    full_name: "{% if user_profile.address %}{{ user.first_name }} {{ user.last_name }}{% elif default_address %}{{ default_address.full_name }}{% else %}{{ user.first_name }} {{ user.last_name }}{% endif %}",
+    full_name: "{{ user.first_name }} {{ user.last_name }}",
     phone: "{% if user_profile.phone %}{{ user_profile.phone }}{% elif default_address %}{{ default_address.phone }}{% endif %}",
     address: "{% if user_profile.address %}{{ user_profile.address }}{% elif default_address %}{{ default_address.address }}{% endif %}",
     city: "{% if user_profile.city %}{{ user_profile.city }}{% elif default_address %}{{ default_address.city }}{% endif %}",
@@ -988,10 +1008,11 @@ function checkFormValidity() {
     return isValid;
 }
 
-// ✅ FUNCTION: Use saved address
+// ✅ FUNCTION: Use saved address - DIPERBAIKI
 function useSavedAddress() {
     const shippingMethod = document.getElementById('shippingMethod').value;
     
+    // Isi form dengan data alamat default
     document.getElementById('full_name').value = savedAddressData.full_name || '';
     document.getElementById('phone').value = savedAddressData.phone || '';
     
@@ -1017,6 +1038,9 @@ function useSavedAddress() {
     }
     
     checkFormValidity();
+    
+    // Tampilkan pesan sukses
+    showVoucherMessage('Alamat default berhasil diisi!', 'success');
 }
 
 // ✅ FUNCTION: Show payment section
@@ -1315,18 +1339,25 @@ document.querySelectorAll('input, textarea, select').forEach(field => {
     });
 });
 
-// ✅ INITIALIZE
+// ✅ DIPERBAIKI: Initialize dengan form kosong
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Checkout page loaded');
     
     // Initialize voucher UI
     updateVoucherUI();
     
-    // Auto-set city and province
+    // ✅ DIPERBAIKI: Auto-set city dan province TANPA mengisi field lain
     const cityField = document.getElementById('city');
     const provinceField = document.getElementById('province');
-    if (!cityField.value) cityField.value = 'Makassar';
-    if (!provinceField.value) provinceField.value = 'Sulawesi Selatan';
+    if (cityField && !cityField.value) cityField.value = 'Makassar';
+    if (provinceField && !provinceField.value) provinceField.value = 'Sulawesi Selatan';
+    
+    // ✅ DIPERBAIKI: Kosongkan field lainnya
+    document.getElementById('full_name').value = '';
+    document.getElementById('phone').value = '';
+    document.getElementById('address').value = '';
+    document.getElementById('district').selectedIndex = 0;
+    document.getElementById('postal_code').value = '';
     
     // Initialize shipping method
     const initialShippingMethod = '{{ shipping_method }}';
