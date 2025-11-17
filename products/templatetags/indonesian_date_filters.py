@@ -88,6 +88,10 @@ def tanggal_indonesia(value):
         else:
             return value
     
+    # ✅ PERBAIKAN: Konversi ke timezone Asia/Makassar sesuai settings
+    if isinstance(value, datetime.datetime) and timezone.is_aware(value):
+        value = timezone.localtime(value)  # Ini akan menggunakan TIME_ZONE dari settings
+    
     bulan = {
         1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April',
         5: 'Mei', 6: 'Juni', 7: 'Juli', 8: 'Agustus',
@@ -160,6 +164,10 @@ def tanggal_singkat(value):
                 continue
         else:
             return value
+    
+    # ✅ PERBAIKAN: Konversi ke timezone Asia/Makassar sesuai settings
+    if isinstance(value, datetime.datetime) and timezone.is_aware(value):
+        value = timezone.localtime(value)  # Ini akan menggunakan TIME_ZONE dari settings
     
     bulan_singkat = {
         1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr',
