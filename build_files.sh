@@ -1,9 +1,12 @@
 #!/bin/bash
 
+echo "🔧 Starting build process..."
+
 # Install dependencies
 pip install -r requirements.txt
 
-# Run migrations
+# Buat dan jalankan migrations
+python manage.py makemigrations
 python manage.py migrate
 
 # Collect static files
