@@ -92,6 +92,11 @@
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
+.profile-info {
+    text-align: left;
+    padding-top: 15px;
+}
+
 .profile-info h1 {
     font-size: 32px;
     font-weight: 700;
@@ -103,11 +108,24 @@
     margin: 3px 0;
     color: #666;
     font-size: 16px;
+    text-align: left;
 }
 
 .profile-info .member-since {
     font-size: 14px;
     color: #999;
+    text-align: left;
+}
+
+.profile-info .profile-bio {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e0e0e0;
+    font-size: 14px;
+    color: #555;
+    line-height: 1.6;
+    font-style: italic;
+    max-width: 600px;
 }
 
 /* Messages */
@@ -399,13 +417,31 @@
     .profile-header-content {
         flex-direction: column;
         align-items: center;
-        text-align: center;
         padding: 0 20px 20px;
     }
     
     .profile-avatar {
         margin-right: 0;
         margin-bottom: 15px;
+    }
+    
+    /* Keep text left-aligned even on mobile */
+    .profile-info {
+        width: 100%;
+        text-align: left;
+        padding-top: 10px;
+    }
+    
+    .profile-info h1 {
+        text-align: left;
+    }
+    
+    .profile-info p {
+        text-align: left;
+    }
+    
+    .profile-info .member-since {
+        text-align: left;
     }
     
     .stats-grid {

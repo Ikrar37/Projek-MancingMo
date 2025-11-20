@@ -417,3 +417,129 @@
         text-align: left;
     }
 }
+
+/* Status Badge untuk Expired */
+.status-expired {
+    background: #dc3545 !important;
+    color: white !important;
+}
+
+/* Button Styles */
+.btn-continue-payment,
+.btn-retry-payment {
+    display: inline-block;
+    width: 100%;
+    padding: 12px 20px;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
+}
+
+.btn-continue-payment {
+    background: #1f7a1f;
+}
+
+.btn-continue-payment:hover {
+    background: #166316;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(31, 122, 31, 0.3);
+}
+
+.btn-retry-payment {
+    background: #ff9800;
+}
+
+.btn-retry-payment:hover {
+    background: #f57c00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
+}
+
+.btn-continue-payment svg,
+.btn-retry-payment svg {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+
+/* Timeline untuk Expired */
+.timeline-item.expired .timeline-marker {
+    background: #dc3545;
+    border-color: #dc3545;
+}
+
+.timeline-item.expired .timeline-marker::after {
+    background: #dc3545;
+}
+
+/* Helper Text untuk Expired Payment */
+.payment-expired-notice {
+    margin-top: 10px;
+    padding: 12px;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    font-size: 0.85em;
+    color: #856404;
+    text-align: center;
+}
+
+.payment-expired-notice strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #dc3545;
+}
+
+.voucher-discount {
+    color: #e53935;
+    font-weight: 600;
+}
+
+.voucher-info {
+    background: #e8f5e8;
+    border-left: 4px solid #4caf50;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.voucher-code {
+    font-weight: 600;
+    color: #2e7d32;
+}
+
+.order-container {
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.order-card {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    margin-bottom: 30px;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #1a73e8;
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.back-link:hover {
+    gap: 12px;
+}

@@ -4,6 +4,10 @@
     {
       "src": "ecommerce/wsgi.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "build_files.sh",
+      "use": "@vercel/static-build"
     }
   ],
   "routes": [
@@ -12,8 +16,13 @@
       "dest": "/static/$1"
     },
     {
+      "src": "/media/(.*)",
+      "dest": "/media/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "ecommerce/wsgi.py"
     }
-  ]
+  ],
+  "outputDirectory": "staticfiles"
 }

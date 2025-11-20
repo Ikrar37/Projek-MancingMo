@@ -11,20 +11,18 @@ python manage.py makemigrations --noinput
 echo "3. Running migrations..."
 python manage.py migrate --noinput
 
-echo "4. Checking static files structure..."
-echo "=== Static files in static/ ==="
-find static -type f | head -20
-
-echo "5. Collecting static files..."
+echo "4. Collecting static files..."
 rm -rf staticfiles
 python manage.py collectstatic --noinput --clear
 
-echo "6. Verifying collected static files..."
-echo "=== Files in staticfiles/ ==="
-ls -la staticfiles/
-echo "=== CSS files ==="
-find staticfiles -name "*.css" | head -10
-echo "=== Image files ==="
-find staticfiles -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" | head -10
+echo "5. Creating vercel output directory..."
+mkdir -p /vercel/output/static
+
+echo "6. Copying static files to Vercel output..."
+cp -r staticfiles/* /vercel/output/static/ 2>/dev/null || echo "No static files to copy"
+
+echo "7. Verifying files in output directory..."
+find /vercel/output/static -type f -name "*.css" | head -10
+find /vercel/output/static -type f -name "*.png" | head -10
 
 echo "=== Build Complete ==="
