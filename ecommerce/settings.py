@@ -135,11 +135,14 @@ NUMBER_GROUPING = 3
 
 # ==================== STATIC FILES CONFIGURATION ====================
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 # Pastikan ini di settings.py
 DEBUG = False  # Atau dari environment variable
+
+# Simple static files storage
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # ==================== SECURITY SETTINGS ====================
 if IS_VERCEL:

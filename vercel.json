@@ -4,12 +4,16 @@
     {
       "src": "ecommerce/wsgi.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "api/static.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/static/$1"
+      "dest": "/api/static.py?path=$1"
     },
     {
       "src": "/(.*)",
