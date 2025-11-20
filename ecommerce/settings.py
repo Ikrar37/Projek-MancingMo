@@ -15,15 +15,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ==================== ENVIRONMENT CONFIGURATION ====================
 # Deteksi apakah running di Vercel
-IS_VERCEL = os.environ.get('VERCEL_ENV') is not None
+IS_VERCEL = os.environ.get('VERCEL') == '1'
 
 # Security settings
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-this-in-production')
-DEBUG = config('DEBUG', default=False, cast=bool)
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key')
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 # Allowed hosts
 if IS_VERCEL:
-    ALLOWED_HOSTS = ['.vercel.app', '.now.sh']
+    ALLOWED_HOSTS = [
+    '.vercel.app',
+    '.now.sh',
+    'localhost',
+    '127.0.0.1'
+]
     # Tambahkan domain custom Anda di sini jika ada
     custom_domain = config('CUSTOM_DOMAIN', default='')
     if custom_domain:
@@ -53,7 +58,6 @@ INSTALLED_APPS = [
 # ==================== MIDDLEWARE ====================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # 'whitenoise.middleware.WhiteNoiseMiddleware',  # COMMENT DULU
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
