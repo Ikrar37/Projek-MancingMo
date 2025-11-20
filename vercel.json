@@ -8,28 +8,16 @@
         "maxLambdaSize": "15mb",
         "runtime": "python3.9"
       }
-    },
-    {
-      "src": "build_files.sh",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "staticfiles"
-      }
     }
   ],
   "routes": [
     {
       "src": "/static/(.*)",
-      "dest": "/staticfiles/$1"
-    },
-    {
-      "src": "/media/(.*)",
-      "dest": "https://res.cloudinary.com/your-cloud-name/image/upload/$1"
+      "dest": "/static/$1"
     },
     {
       "src": "/(.*)",
       "dest": "ecommerce/wsgi.py"
     }
-  ],
-  "outputDirectory": "staticfiles"
+  ]
 }
