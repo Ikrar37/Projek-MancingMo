@@ -53,7 +53,7 @@ INSTALLED_APPS = [
 # ==================== MIDDLEWARE ====================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # PASTIKAN INI AKTIF
+    # 'whitenoise.middleware.WhiteNoiseMiddleware',  # COMMENT DULU
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -138,11 +138,8 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-# Untuk sementara, gunakan storage sederhana
-if IS_VERCEL:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-else:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+# HAPUS SEMUA STORAGES COMPLEX - GUNAKAN INI SAJA:
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # ==================== MEDIA FILES CONFIGURATION (CLOUDINARY) ====================
 # Cloudinary untuk media files (images, uploads)

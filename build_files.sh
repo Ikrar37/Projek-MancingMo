@@ -11,18 +11,20 @@ python manage.py makemigrations --noinput
 echo "3. Running migrations..."
 python manage.py migrate --noinput
 
-echo "4. Collecting static files..."
-# Clear existing static files first
+echo "4. Checking static files structure..."
+echo "=== Static files in static/ ==="
+find static -type f | head -20
+
+echo "5. Collecting static files..."
 rm -rf staticfiles
 python manage.py collectstatic --noinput --clear
 
-echo "5. Verifying static files were collected..."
-echo "=== Static files in staticfiles/ ==="
-find staticfiles -type f -name "*.css" | head -10
-find staticfiles -type f -name "*.js" | head -10
-find staticfiles -type f -name "*.png" | head -10
-
-echo "6. File structure:"
+echo "6. Verifying collected static files..."
+echo "=== Files in staticfiles/ ==="
 ls -la staticfiles/
+echo "=== CSS files ==="
+find staticfiles -name "*.css" | head -10
+echo "=== Image files ==="
+find staticfiles -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" | head -10
 
 echo "=== Build Complete ==="
