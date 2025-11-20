@@ -138,19 +138,8 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-# HAPUS SEMUA STORAGES COMPLEX - GUNAKAN INI SAJA:
-STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-
-# ==================== MEDIA FILES CONFIGURATION (CLOUDINARY) ====================
-# Cloudinary untuk media files (images, uploads)
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME', default=''),
-    'API_KEY': config('CLOUDINARY_API_KEY', default=''),
-    'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
-}
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+# Pastikan ini di settings.py
+DEBUG = False  # Atau dari environment variable
 
 # ==================== SECURITY SETTINGS ====================
 if IS_VERCEL:
