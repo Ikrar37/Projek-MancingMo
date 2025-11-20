@@ -1,20 +1,28 @@
 #!/bin/bash
 
-echo "Installing dependencies..."
+echo "=== Starting Build Process ==="
+
+echo "1. Installing dependencies..."
 pip install -r requirements.txt
 
-echo "Making migrations..."
+echo "2. Making migrations..."
 python manage.py makemigrations --noinput
 
-echo "Running migrations..."
+echo "3. Running migrations..."
 python manage.py migrate --noinput
 
-echo "Collecting static files..."
-# Hapus dulu staticfiles yang lama, lalu collect baru
+echo "4. Collecting static files..."
+# Clear existing static files first
 rm -rf staticfiles
 python manage.py collectstatic --noinput --clear
 
-echo "Checking static files..."
-find staticfiles -name "*.png" | head -10
+echo "5. Verifying static files were collected..."
+echo "=== Static files in staticfiles/ ==="
+find staticfiles -type f -name "*.css" | head -10
+find staticfiles -type f -name "*.js" | head -10
+find staticfiles -type f -name "*.png" | head -10
 
-echo "Build complete!"
+echo "6. File structure:"
+ls -la staticfiles/
+
+echo "=== Build Complete ==="
